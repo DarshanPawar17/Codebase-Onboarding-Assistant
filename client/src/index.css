@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------- */
+/* Base                                                                     */
+/* ---------------------------------------------------------------------- */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: #1c1917;
+    /* Subtle paper-grain dot pattern. Pure CSS, no images.
+       Deliberately faint so it reads as texture, not pattern. */
+    background-image: radial-gradient(
+      rgba(249, 115, 22, 0.05) 1px,
+      transparent 1px
+    );
+    background-size: 24px 24px;
+    background-position: 0 0;
+  }
+  ::selection {
+    background: rgba(249, 115, 22, 0.35);
+    color: #fff;
+  }
+
+  /* Custom scrollbar — narrow, warm, not OS-default */
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #3f3a37;
+    border-radius: 0;
+    border: 2px solid #1c1917;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: #57534e;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Components                                                                */
+/* ---------------------------------------------------------------------- */
+@layer components {
+  /* Editorial surface — flat, sharp 1px border, no rounded glassy nonsense */
+  .panel {
+    @apply border border-rule bg-bg-soft;
+  }
+  .panel-sub {
+    @apply border border-ruleSoft bg-bg-sub;
+  }
+
+  /* Small all-caps mono label that lives ABOVE a section. Editorial feel. */
+  .eyebrow {
+    @apply font-mono text-[10px] font-medium uppercase tracking-wider2 text-ink-dim;
+  }
+
+  /* A monospace prompt prefix used as a visual cue for inputs */
+  .prompt-prefix {
+    @apply pointer-events-none select-none font-mono text-accent;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 border border-accent bg-accent px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider2 text-bg transition hover:bg-accent-strong hover:border-accent-strong disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 border border-rule bg-transparent px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider2 text-ink-muted transition hover:border-accent hover:text-accent;
+  }
+
+  /* Input — terminal style, subtle border, focus turns amber */
+  .input {
+    @apply w-full bg-bg-sub border border-rule px-3 py-2.5 font-mono text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+  }
+
+  /* Inline pill/tag — sharp corners, mono, low weight */
+  .tag {
+    @apply inline-flex items-center gap-1 border border-rule bg-bg-sub px-2 py-0.5 font-mono text-[11px] text-ink-muted;
+  }
+  .tag-link {
+    @apply tag hover:border-accent hover:text-accent;
+  }
+
+  /* Horizontal rule with a small gap — used between sections in editorial layouts */
+  .hr-thin {
+    @apply border-t border-ruleSoft;
+  }
+
+  /* A small inline file:line monospace reference */
+  .filepath {
+    @apply font-mono text-[12px] text-ink-muted;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Markdown rendering inside the chat transcript                             */
+/* ---------------------------------------------------------------------- */
+.markdown {
+  @apply font-serif text-[15px] leading-7 text-ink;
+}
+.markdown p {
+  @apply mb-3;
+}
+.markdown ul,
+.markdown ol {
+  @apply mb-3 ml-5 list-disc;
+}
+.markdown ol {
+  @apply list-decimal;
+}
+.markdown li {
+  @apply mb-1;
+}
+.markdown code {
+  @apply rounded-none border border-ruleSoft bg-bg-sub px-1 py-0.5 font-mono text-[0.85em] text-accent-soft;
+}
+.markdown pre {
+  @apply my-3 overflow-x-auto border border-rule bg-bg-deep p-3 font-mono text-[12.5px] leading-relaxed;
+}
+.markdown pre code {
+  @apply border-0 bg-transparent p-0 text-ink;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  @apply mt-4 mb-2 font-serif font-semibold text-ink;
+}
+.markdown h1 { @apply text-xl; }
+.markdown h2 { @apply text-lg; }
+.markdown h3 { @apply text-base; }
+.markdown a {
+  @apply text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent;
+}
+.markdown blockquote {
+  @apply border-l-2 border-accent pl-4 text-ink-muted italic;
+}
