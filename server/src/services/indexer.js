@@ -28,7 +28,7 @@ async function indexRepo({ repoUrl, force = false }) {
   }
 
   // Pre-flight: fetch repo metadata to fail fast on private / 404.
-  const meta = await github.fetchRepoMetadata(owner, name);
+  const meta = await github.fetchRepoMetadata(owner, name, normalizedUrl);
   if (meta.isPrivate) {
     throw new Error("Private repos are not supported in MVP.");
   }
@@ -48,7 +48,7 @@ async function indexRepo({ repoUrl, force = false }) {
       repoUrl: normalizedUrl,
       owner,
       name,
-      defaultBranch: meta.defaultBranch,
+      defaultBranch: meta.defaultBranch || "main",
       collectionName,
       status: "indexing",
     });
@@ -56,7 +56,7 @@ async function indexRepo({ repoUrl, force = false }) {
     repo.status = "indexing";
     // null (not undefined) so the field is reliably cleared in MongoDB.
     repo.error = null;
-    repo.defaultBranch = meta.defaultBranch;
+    repo.defaultBranch = meta.defaultBranch || repo.defaultBranch || "main";
     repo.collectionName = collectionName;
     await repo.save();
   }
@@ -71,6 +71,9 @@ async function indexRepo({ repoUrl, force = false }) {
     });
     clonePath = cloneResult.localPath;
     repo.commitSha = cloneResult.commitSha;
+    if (cloneResult.defaultBranch) {
+      repo.defaultBranch = cloneResult.defaultBranch;
+    }
 
     // Chunk.
     logger.info(`Chunking ${normalizedUrl}...`);
@@ -121,9 +124,11 @@ async function indexRepo({ repoUrl, force = false }) {
 
     return repo;
   } catch (err) {
-    repo.status = "failed";
-    repo.error = err.message;
-    await repo.save();
+    if (repo) {
+      repo.status = "failed";
+      repo.error = err.message;
+      await repo.save().catch(() => {});
+    }
     throw err;
   } finally {
     if (clonePath) {

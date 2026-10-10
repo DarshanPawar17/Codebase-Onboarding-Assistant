@@ -24,8 +24,12 @@ function isSafeUserError(err) {
     m.includes("Repo is too large") ||
     m.includes("Private repos are not supported") ||
     m.includes("No supported source files") ||
-    m.includes("GitHub rate limit hit") ||
-    m.includes("OPENAI_API_KEY is not set")
+    m.includes("GitHub rate limit") ||
+    m.includes("OPENAI_API_KEY is not set") ||
+    m.includes("OpenAI credit balance exhausted") ||
+    m.includes("quota exceeded") ||
+    m.includes("credits remaining") ||
+    m.includes("billing")
   );
 }
 

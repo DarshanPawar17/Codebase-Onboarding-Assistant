@@ -53,6 +53,19 @@ async function embedTexts(texts) {
         }
         success = true;
       } catch (err) {
+        if (
+          err.code === "insufficient_quota" ||
+          err.code === "credit_balance_exhausted" ||
+          err.type === "insufficient_quota" ||
+          (err.message && err.message.includes("quota")) ||
+          (err.message && err.message.includes("credit_balance_exhausted")) ||
+          (err.message && err.message.includes("credits remaining")) ||
+          (err.message && err.message.includes("billing"))
+        ) {
+          throw new Error(
+            "OpenAI credit balance exhausted or quota exceeded. Please check your OpenAI billing at platform.openai.com/account/billing."
+          );
+        }
         if (err.status === 429 && retries > 1) {
           let waitTime = 60000;
           const match = err.message && err.message.match(/retry in ([\d.]+)s/);

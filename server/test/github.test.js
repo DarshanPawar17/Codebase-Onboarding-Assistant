@@ -113,3 +113,18 @@ describe("buildGithubFileUrl", () => {
     );
   });
 });
+
+describe("fetchRepoMetadata", () => {
+  test("resolves default branch for a public repository", async () => {
+    const meta = await github.fetchRepoMetadata("tj", "commander.js");
+    assert.ok(meta.defaultBranch, "Expected defaultBranch to be defined");
+    assert.equal(meta.isPrivate, false);
+  });
+
+  test("throws safe user error for non-existent or private repo", async () => {
+    await assert.rejects(
+      () => github.fetchRepoMetadata("nonexistent-owner-abc123xyz", "nonexistent-repo-456"),
+      /Repository not found/i
+    );
+  });
+});

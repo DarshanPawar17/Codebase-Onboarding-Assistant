@@ -49,49 +49,74 @@ function buildChatMessages({ chunks, history, userQuestion }) {
   ];
 }
 
+function formatLlmError(err) {
+  if (
+    err.code === "insufficient_quota" ||
+    err.code === "credit_balance_exhausted" ||
+    err.type === "insufficient_quota" ||
+    (err.message && err.message.includes("quota")) ||
+    (err.message && err.message.includes("credit_balance_exhausted")) ||
+    (err.message && err.message.includes("credits remaining")) ||
+    (err.message && err.message.includes("billing"))
+  ) {
+    return new Error(
+      "OpenAI credit balance exhausted or quota exceeded. Please check your OpenAI billing at platform.openai.com/account/billing."
+    );
+  }
+  return err;
+}
+
 // Stream chat tokens. Calls `onToken(text)` for each delta and resolves when
 // done. Returns the full assembled answer.
 async function streamChat({ chunks, history, userQuestion, onToken }) {
-  const messages = buildChatMessages({ chunks, history, userQuestion });
-  const stream = await client().chat.completions.create({
-    model: env.openai.chatModel,
-    messages,
-    stream: true,
-    temperature: 0.2,
-    max_tokens: 700,
-  });
+  try {
+    const messages = buildChatMessages({ chunks, history, userQuestion });
+    const stream = await client().chat.completions.create({
+      model: env.openai.chatModel,
+      messages,
+      stream: true,
+      temperature: 0.2,
+      max_tokens: 700,
+    });
 
-  let full = "";
-  for await (const part of stream) {
-    const delta = part.choices?.[0]?.delta?.content;
-    if (delta) {
-      full += delta;
-      if (onToken) onToken(delta);
+    let full = "";
+    for await (const part of stream) {
+      const delta = part.choices?.[0]?.delta?.content;
+      if (delta) {
+        full += delta;
+        if (onToken) onToken(delta);
+      }
     }
+    return full;
+  } catch (err) {
+    throw formatLlmError(err);
   }
-  return full;
 }
 
 // One-shot non-streamed completion, used for the architecture overview.
 async function generateArchitectureSummary({ repoName, topChunks }) {
-  const context = formatChunksAsContext(topChunks.slice(0, 12));
-  const resp = await client().chat.completions.create({
-    model: env.openai.chatModel,
-    temperature: 0.2,
-    max_tokens: 600,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a staff engineer summarizing a codebase architecture for a new contributor. Produce a tight overview: (1) what the project does (best guess), (2) major modules/folders and their roles, (3) the request/data flow if discernible. Be honest about uncertainty. Reference file paths in backticks.",
-      },
-      {
-        role: "user",
-        content: `Repo: ${repoName}\n\nRepresentative code chunks:\n\n${context}\n\nWrite the overview.`,
-      },
-    ],
-  });
-  return resp.choices?.[0]?.message?.content?.trim() || "";
+  try {
+    const context = formatChunksAsContext(topChunks.slice(0, 12));
+    const resp = await client().chat.completions.create({
+      model: env.openai.chatModel,
+      temperature: 0.2,
+      max_tokens: 600,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a staff engineer summarizing a codebase architecture for a new contributor. Produce a tight overview: (1) what the project does (best guess), (2) major modules/folders and their roles, (3) the request/data flow if discernible. Be honest about uncertainty. Reference file paths in backticks.",
+        },
+        {
+          role: "user",
+          content: `Repo: ${repoName}\n\nRepresentative code chunks:\n\n${context}\n\nWrite the overview.`,
+        },
+      ],
+    });
+    return resp.choices?.[0]?.message?.content?.trim() || "";
+  } catch (err) {
+    throw formatLlmError(err);
+  }
 }
 
 module.exports = {

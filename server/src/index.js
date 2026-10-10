@@ -43,10 +43,15 @@ app.use(
     origin(origin, cb) {
       // Same-origin / curl / server-to-server requests have no Origin header.
       if (!origin) return cb(null, true);
-      const ok = allowedOrigins.some((p) =>
+      const isConfigured = allowedOrigins.some((p) =>
         p instanceof RegExp ? p.test(origin) : p === origin
       );
-      return ok ? cb(null, true) : cb(new Error(`CORS: ${origin} not allowed`));
+      const isVercelOrLocal =
+        /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+        /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin);
+      return isConfigured || isVercelOrLocal
+        ? cb(null, true)
+        : cb(new Error(`CORS: ${origin} not allowed`));
     },
     credentials: false,
   })

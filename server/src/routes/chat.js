@@ -32,7 +32,11 @@ function isSafeUserError(err) {
   return (
     m === "Repo not found" ||
     m.startsWith("Repo is not ready") ||
-    m.startsWith("OPENAI_API_KEY is not set")
+    m.startsWith("OPENAI_API_KEY is not set") ||
+    m.includes("OpenAI credit balance exhausted") ||
+    m.includes("quota exceeded") ||
+    m.includes("credits remaining") ||
+    m.includes("billing")
   );
 }
 

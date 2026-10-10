@@ -39,7 +39,40 @@ function parseGithubUrl(rawUrl) {
   return { owner, name, normalizedUrl: normalized };
 }
 
-async function fetchRepoMetadata(owner, name) {
+async function probeRepoViaGit(normalizedUrl) {
+  const git = simpleGit({
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+  });
+  try {
+    const output = await git.listRemote(["--symref", normalizedUrl, "HEAD"]);
+    if (!output || !output.trim()) {
+      throw new Error("Repository not found (or private — only public repos are supported in MVP)");
+    }
+    const match = output.match(/ref: refs\/heads\/([^\s]+)\s+HEAD/);
+    const defaultBranch = match ? match[1] : "main";
+    return {
+      defaultBranch,
+      stars: 0,
+      language: null,
+      sizeKB: null,
+      isPrivate: false,
+    };
+  } catch (err) {
+    const msg = err.message || "";
+    if (
+      msg.includes("Repository not found") ||
+      msg.includes("Authentication failed") ||
+      msg.includes("could not read Username") ||
+      msg.includes("fatal:")
+    ) {
+      throw new Error("Repository not found (or private — only public repos are supported in MVP)");
+    }
+    throw err;
+  }
+}
+
+async function fetchRepoMetadata(owner, name, normalizedUrl) {
+  const url = normalizedUrl || `https://github.com/${owner}/${name}`;
   try {
     const octokit = await getOctokit();
     const { data } = await octokit.repos.get({ owner, repo: name });
@@ -55,9 +88,15 @@ async function fetchRepoMetadata(owner, name) {
       throw new Error("Repository not found (or private — only public repos are supported in MVP)");
     }
     if (err.status === 403) {
-      throw new Error("GitHub rate limit hit. Set GITHUB_TOKEN to increase quota.");
+      logger.warn(
+        `GitHub API rate limit reached for ${owner}/${name}. Falling back to git remote probe.`
+      );
+      return await probeRepoViaGit(url);
     }
-    throw err;
+    logger.warn(
+      `GitHub API request failed for ${owner}/${name} (${err.message}). Falling back to git remote probe.`
+    );
+    return await probeRepoViaGit(url);
   }
 }
 
@@ -67,20 +106,27 @@ async function cloneRepo({ owner, name, normalizedUrl, depth = 1 }) {
   const dest = await fs.mkdtemp(path.join(CLONE_ROOT, `${owner}-${name}-`));
 
   logger.info(`Cloning ${normalizedUrl} -> ${dest}`);
-  const git = simpleGit();
+  const git = simpleGit({
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+  });
   await git.clone(normalizedUrl, dest, ["--depth", String(depth), "--single-branch"]);
 
   // Resolve the commit SHA we ended up on.
   const repoGit = simpleGit(dest);
   const sha = (await repoGit.revparse(["HEAD"])).trim();
 
-  return { localPath: dest, commitSha: sha };
+  let branch = "main";
+  try {
+    branch = (await repoGit.revparse(["--abbrev-ref", "HEAD"])).trim();
+  } catch (_) {}
+
+  return { localPath: dest, commitSha: sha, defaultBranch: branch };
 }
 
 async function cleanupClone(localPath) {
   if (!localPath) return;
   try {
-    await fs.rm(localPath, { recursive: true, force: true });
+    await fs.rm(localPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     logger.info(`Cleaned up clone at ${localPath}`);
   } catch (err) {
     logger.warn(`Failed to clean up clone at ${localPath}`, err.message);
