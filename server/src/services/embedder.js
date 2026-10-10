@@ -37,8 +37,12 @@ async function embedTexts(texts) {
       `Embedding batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(texts.length / batchSize)} (${slice.length} items)`
     );
     
+    if (i > 0) {
+      await delay(300);
+    }
+
     let success = false;
-    let retries = 3;
+    let retries = 4;
     while (!success && retries > 0) {
       try {
         const resp = await client().embeddings.create({
@@ -53,24 +57,29 @@ async function embedTexts(texts) {
         }
         success = true;
       } catch (err) {
+        // If the provider specifies a retry delay (e.g. Gemini rate limits), honor it and retry!
+        const match = err.message && err.message.match(/retry in ([\d.]+)s/i);
+        if (err.status === 429 && match && retries > 1) {
+          const waitTime = Math.ceil(parseFloat(match[1]) * 1000) + 1000;
+          logger.warn(`Rate limit hit! Waiting ${waitTime / 1000}s before retrying...`);
+          await delay(waitTime);
+          retries--;
+          continue;
+        }
+
         if (
-          err.code === "insufficient_quota" ||
           err.code === "credit_balance_exhausted" ||
-          err.type === "insufficient_quota" ||
-          (err.message && err.message.includes("quota")) ||
           (err.message && err.message.includes("credit_balance_exhausted")) ||
-          (err.message && err.message.includes("credits remaining")) ||
-          (err.message && err.message.includes("billing"))
+          (err.message && err.message.includes("no credits remaining"))
         ) {
           throw new Error(
-            "OpenAI credit balance exhausted or quota exceeded. Please check your OpenAI billing at platform.openai.com/account/billing."
+            "AI provider credit balance exhausted. Please check your API billing or configure free Gemini."
           );
         }
+
         if (err.status === 429 && retries > 1) {
-          let waitTime = 60000;
-          const match = err.message && err.message.match(/retry in ([\d.]+)s/);
-          if (match) waitTime = Math.ceil(parseFloat(match[1]) * 1000) + 1000;
-          logger.warn(`Rate limit hit! Waiting ${waitTime/1000}s before retrying...`);
+          const waitTime = 10000;
+          logger.warn(`Rate limit hit! Waiting ${waitTime / 1000}s before retrying...`);
           await delay(waitTime);
           retries--;
         } else {

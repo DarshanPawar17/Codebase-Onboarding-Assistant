@@ -20,11 +20,13 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: OPENAI_BASE_URL
+        sync: false
       - key: GITHUB_TOKEN
         sync: false
       - key: OPENAI_CHAT_MODEL
-        value: gpt-4o-mini
+        sync: false
       - key: OPENAI_EMBED_MODEL
-        value: text-embedding-3-small
+        sync: false
       - key: EMBED_DIM
-        value: "1536"
+        sync: false
