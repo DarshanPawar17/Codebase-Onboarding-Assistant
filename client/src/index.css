@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------- */
-/* Base                                                                     */
+/* Base                                                                   */
 /* ---------------------------------------------------------------------- */
 @layer base {
   html,
@@ -12,132 +12,185 @@
     height: 100%;
   }
   body {
-    background: #1c1917;
-    /* Subtle paper-grain dot pattern. Pure CSS, no images.
-       Deliberately faint so it reads as texture, not pattern. */
-    background-image: radial-gradient(
-      rgba(249, 115, 22, 0.05) 1px,
-      transparent 1px
-    );
-    background-size: 24px 24px;
+    background-color: #090d16;
+    /* Soft ambient tech glow at the top, dark slate canvas */
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08), transparent 45%),
+      radial-gradient(circle at 100% 0%, rgba(129, 140, 248, 0.05), transparent 30%),
+      radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 28px 28px;
     background-position: 0 0;
+    color: #f1f5f9;
   }
   ::selection {
-    background: rgba(249, 115, 22, 0.35);
-    color: #fff;
+    background: rgba(56, 189, 248, 0.3);
+    color: #ffffff;
   }
 
-  /* Custom scrollbar — narrow, warm, not OS-default */
+  /* Custom scrollbar — narrow, sleek */
   *::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 6px;
+    height: 6px;
   }
   *::-webkit-scrollbar-track {
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background: #3f3a37;
-    border-radius: 0;
-    border: 2px solid #1c1917;
+    background: #1e293b;
+    border-radius: 9999px;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: #57534e;
+    background: #334155;
   }
 }
 
 /* ---------------------------------------------------------------------- */
-/* Components                                                                */
+/* Components                                                             */
 /* ---------------------------------------------------------------------- */
 @layer components {
-  /* Editorial surface — flat, sharp 1px border, no rounded glassy nonsense */
+  /* Surfaces */
   .panel {
-    @apply border border-rule bg-bg-soft;
+    @apply rounded-xl border border-rule/80 bg-bg-surface/90 shadow-card backdrop-blur-md;
   }
   .panel-sub {
-    @apply border border-ruleSoft bg-bg-sub;
+    @apply rounded-lg border border-ruleSoft bg-bg-sub;
+  }
+  .glass-card {
+    @apply rounded-xl border border-rule/60 bg-bg-soft/70 backdrop-blur-lg transition-all duration-200 hover:border-accent/40 hover:shadow-glow-sm;
   }
 
-  /* Small all-caps mono label that lives ABOVE a section. Editorial feel. */
+  /* Labels */
   .eyebrow {
-    @apply font-mono text-[10px] font-medium uppercase tracking-wider2 text-ink-dim;
+    @apply font-mono text-[10px] font-semibold uppercase tracking-wider2 text-ink-dim;
   }
 
-  /* A monospace prompt prefix used as a visual cue for inputs */
+  /* Inputs & Prefix */
   .prompt-prefix {
     @apply pointer-events-none select-none font-mono text-accent;
   }
 
   /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 border border-accent bg-accent px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider2 text-bg transition hover:bg-accent-strong hover:border-accent-strong disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider2 text-bg-deep shadow-glow-sm transition-all duration-150 hover:bg-accent-soft hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 border border-rule bg-transparent px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider2 text-ink-muted transition hover:border-accent hover:text-accent;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-bg-surface/60 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider2 text-ink-muted transition-all duration-150 hover:border-accent/60 hover:text-accent hover:bg-bg-soft/80;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-rule bg-bg-soft/80 px-3 py-1.5 text-xs font-medium text-ink transition-all hover:border-rule/80 hover:bg-bg-hover active:scale-[0.98];
   }
 
-  /* Input — terminal style, subtle border, focus turns amber */
+  /* Input */
   .input {
-    @apply w-full bg-bg-sub border border-rule px-3 py-2.5 font-mono text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+    @apply w-full rounded-lg border border-rule bg-bg-sub px-3 py-2.5 font-mono text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
   }
 
-  /* Inline pill/tag — sharp corners, mono, low weight */
+  /* Tags & Pills */
   .tag {
-    @apply inline-flex items-center gap-1 border border-rule bg-bg-sub px-2 py-0.5 font-mono text-[11px] text-ink-muted;
+    @apply inline-flex items-center gap-1 rounded-md border border-rule bg-bg-sub/80 px-2 py-0.5 font-mono text-[11px] text-ink-muted;
   }
   .tag-link {
-    @apply tag hover:border-accent hover:text-accent;
+    @apply tag cursor-pointer transition hover:border-accent/60 hover:text-accent hover:bg-accent/5;
   }
 
-  /* Horizontal rule with a small gap — used between sections in editorial layouts */
   .hr-thin {
     @apply border-t border-ruleSoft;
   }
 
-  /* A small inline file:line monospace reference */
   .filepath {
     @apply font-mono text-[12px] text-ink-muted;
   }
 }
 
 /* ---------------------------------------------------------------------- */
-/* Markdown rendering inside the chat transcript                             */
+/* Markdown & Code Highlighting                                            */
 /* ---------------------------------------------------------------------- */
 .markdown {
-  @apply font-serif text-[15px] leading-7 text-ink;
+  @apply font-sans text-[14.5px] leading-relaxed text-ink;
 }
 .markdown p {
-  @apply mb-3;
+  @apply mb-3.5;
 }
 .markdown ul,
 .markdown ol {
-  @apply mb-3 ml-5 list-disc;
+  @apply mb-3.5 ml-5 space-y-1;
+}
+.markdown ul {
+  @apply list-disc;
 }
 .markdown ol {
   @apply list-decimal;
 }
 .markdown li {
-  @apply mb-1;
+  @apply leading-relaxed;
 }
-.markdown code {
-  @apply rounded-none border border-ruleSoft bg-bg-sub px-1 py-0.5 font-mono text-[0.85em] text-accent-soft;
+.markdown code:not(pre code) {
+  @apply rounded border border-ruleSoft bg-bg-sub px-1.5 py-0.5 font-mono text-[0.85em] text-accent font-medium;
 }
 .markdown pre {
-  @apply my-3 overflow-x-auto border border-rule bg-bg-deep p-3 font-mono text-[12.5px] leading-relaxed;
+  @apply my-3.5 overflow-x-auto rounded-lg border border-rule/80 bg-bg-deep p-3.5 font-mono text-[12.5px] leading-relaxed shadow-sm;
 }
 .markdown pre code {
   @apply border-0 bg-transparent p-0 text-ink;
 }
 .markdown h1,
 .markdown h2,
-.markdown h3 {
-  @apply mt-4 mb-2 font-serif font-semibold text-ink;
+.markdown h3,
+.markdown h4 {
+  @apply mt-5 mb-2 font-semibold text-ink tracking-tight;
 }
-.markdown h1 { @apply text-xl; }
+.markdown h1 { @apply text-xl border-b border-ruleSoft pb-1.5; }
 .markdown h2 { @apply text-lg; }
-.markdown h3 { @apply text-base; }
+.markdown h3 { @apply text-base text-accent-soft; }
 .markdown a {
-  @apply text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent;
+  @apply text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent hover:text-accent-soft transition;
 }
 .markdown blockquote {
-  @apply border-l-2 border-accent pl-4 text-ink-muted italic;
+  @apply border-l-2 border-accent/60 pl-3.5 italic text-ink-muted my-3;
+}
+
+/* Prism syntax tokens for dark mode */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #64748b;
+  font-style: italic;
+}
+.token.punctuation {
+  color: #94a3b8;
+}
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol {
+  color: #f43f5e;
+}
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin {
+  color: #34d399;
+}
+.token.operator,
+.token.entity,
+.token.url {
+  color: #38bdf8;
+}
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #818cf8;
+}
+.token.function,
+.token.class-name {
+  color: #fbbf24;
+}
+.token.regex,
+.token.important,
+.token.variable {
+  color: #fb923c;
 }

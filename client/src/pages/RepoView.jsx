@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, GitFork } from "lucide-react";
 
 import ChatBox from "../components/ChatBox.jsx";
 import ArchitectureView from "../components/ArchitectureView.jsx";
+import CodeModal from "../components/CodeModal.jsx";
 import { getRepo } from "../api/client.js";
 
 export default function RepoView() {
@@ -10,6 +12,7 @@ export default function RepoView() {
   const [repo, setRepo] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedCitation, setSelectedCitation] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,53 +39,91 @@ export default function RepoView() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center font-mono text-[12px] text-ink-muted">
-        loading repo
-        <span className="ml-1 inline-block animate-caret">_</span>
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+        <p className="font-mono text-xs text-ink-muted">
+          Loading repository architecture & vector indexes...
+        </p>
       </div>
     );
   }
 
   if (error || !repo) {
     return (
-      <div className="mx-auto max-w-xl">
-        <Link to="/" className="btn-ghost mb-6">
-          ← back
+      <div className="mx-auto max-w-xl py-12">
+        <Link to="/" className="btn-ghost mb-6 inline-flex items-center gap-1.5">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Home</span>
         </Link>
-        <div className="panel border-bad/40 p-5 font-mono text-[13px] text-bad">
-          {error || "Repository not found."}
+        <div className="rounded-2xl border border-bad/40 bg-bad/5 p-6 text-bad shadow-lg">
+          <div className="flex items-center gap-2 mb-2 font-semibold">
+            <AlertTriangle className="h-5 w-5" />
+            <span>Repository Error</span>
+          </div>
+          <p className="text-sm opacity-90">{error || "Repository not found."}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-160px)] flex-col gap-4">
-      {/* Top utility row */}
-      <div className="flex items-center justify-between">
-        <Link to="/" className="btn-ghost">
-          ← new repo
-        </Link>
-        <span className="font-mono text-[11px] uppercase tracking-wider2 text-ink-faint">
-          status:{" "}
-          <span
-            className={
-              repo.status === "ready" ? "text-good" : "text-ink-muted"
-            }
+    <div className="flex h-[calc(100vh-140px)] flex-col gap-3">
+      {/* Top Utility Bar */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 rounded-lg border border-rule/80 bg-bg-surface/80 px-3 py-1.5 text-xs font-mono text-ink-muted hover:border-accent hover:text-ink transition-colors"
           >
-            {repo.status}
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>New Repo</span>
+          </Link>
+
+          <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-ink-dim">
+            <span>repos</span>
+            <span>/</span>
+            <span className="text-ink font-semibold">{repo.owner}</span>
+            <span>/</span>
+            <span className="text-accent-soft font-semibold">{repo.name}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-good/30 bg-good/10 px-2.5 py-0.5 font-mono text-[11px] text-good font-medium">
+            <span className="h-1.5 w-1.5 rounded-full bg-good animate-pulse" />
+            {repo.status || "ready"}
           </span>
-        </span>
+        </div>
       </div>
 
+      {/* Main Workspace Split View */}
       <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12 lg:overflow-hidden">
-        <div className="min-h-0 lg:col-span-5 xl:col-span-4">
-          <ArchitectureView repo={repo} />
+        {/* Left Column: Architecture & Onboarding View */}
+        <div className="min-h-0 lg:col-span-5 xl:col-span-4 h-full">
+          <ArchitectureView
+            repo={repo}
+            onPreviewCitation={(c) => setSelectedCitation(c)}
+          />
         </div>
-        <div className="min-h-0 lg:col-span-7 xl:col-span-8">
-          <ChatBox repoId={repo.id || repo._id} />
+
+        {/* Right Column: Grounded Chat Assistant */}
+        <div className="min-h-0 lg:col-span-7 xl:col-span-8 h-full">
+          <ChatBox
+            repoId={repo.id || repo._id}
+            onPreviewCitation={(c) => setSelectedCitation(c)}
+          />
         </div>
       </div>
+
+      {/* Code Inspection Modal */}
+      {selectedCitation && (
+        <CodeModal
+          citation={selectedCitation}
+          onClose={() => setSelectedCitation(null)}
+        />
+      )}
     </div>
   );
 }

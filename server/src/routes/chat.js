@@ -83,6 +83,7 @@ function buildCitations({ repo, results }) {
       type: p.type,
       name: p.name,
       language: p.language,
+      snippet: p.content || "",
       url: github.buildGithubFileUrl({
         owner: repo.owner,
         name: repo.name,

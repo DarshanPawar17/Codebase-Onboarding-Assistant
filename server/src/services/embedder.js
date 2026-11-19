@@ -31,6 +31,10 @@ async function embedTexts(texts) {
 
   const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
+  // Determine if using Gemini via OpenAI-compatible endpoint
+  const isGemini = (env.openai.baseURL || "").includes("generativelanguage.googleapis.com");
+  const interBatchDelay = isGemini ? 1200 : 300;
+
   for (let i = 0; i < texts.length; i += batchSize) {
     const slice = texts.slice(i, i + batchSize);
     logger.debug(
@@ -38,11 +42,11 @@ async function embedTexts(texts) {
     );
     
     if (i > 0) {
-      await delay(300);
+      await delay(interBatchDelay);
     }
 
     let success = false;
-    let retries = 4;
+    let retries = 6;
     while (!success && retries > 0) {
       try {
         const resp = await client().embeddings.create({
@@ -59,9 +63,12 @@ async function embedTexts(texts) {
       } catch (err) {
         // If the provider specifies a retry delay (e.g. Gemini rate limits), honor it and retry!
         const match = err.message && err.message.match(/retry in ([\d.]+)s/i);
-        if (err.status === 429 && match && retries > 1) {
-          const waitTime = Math.ceil(parseFloat(match[1]) * 1000) + 1000;
-          logger.warn(`Rate limit hit! Waiting ${waitTime / 1000}s before retrying...`);
+        if (err.status === 429 && match && retries > 0) {
+          // Add a 2.5s safety buffer to ensure the provider's rate-limit window has genuinely cleared
+          const waitTime = Math.ceil(parseFloat(match[1]) * 1000) + 2500;
+          logger.warn(
+            `Rate limit hit! Waiting ${(waitTime / 1000).toFixed(1)}s before retrying (${retries} retries left)...`
+          );
           await delay(waitTime);
           retries--;
           continue;
@@ -77,9 +84,11 @@ async function embedTexts(texts) {
           );
         }
 
-        if (err.status === 429 && retries > 1) {
-          const waitTime = 10000;
-          logger.warn(`Rate limit hit! Waiting ${waitTime / 1000}s before retrying...`);
+        if (err.status === 429 && retries > 0) {
+          const waitTime = 12000;
+          logger.warn(
+            `Rate limit hit! Waiting ${(waitTime / 1000).toFixed(1)}s before retrying (${retries} retries left)...`
+          );
           await delay(waitTime);
           retries--;
         } else {

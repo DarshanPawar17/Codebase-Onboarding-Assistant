@@ -1,19 +1,53 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import {
+  Send,
+  Square,
+  Sparkles,
+  User,
+  Copy,
+  Check,
+  Compass,
+  Layers,
+  Terminal,
+  Bug,
+  AlertCircle,
+} from "lucide-react";
 
 import CitationLink from "./CitationLink.jsx";
+import CodeBlock from "./CodeBlock.jsx";
 import { streamChat } from "../api/client.js";
 
-const SUGGESTIONS = [
-  "What does this repo do?",
-  "Where is the main entry point?",
-  "Walk me through the request flow.",
-  "What tests exist and what do they cover?",
+const CATEGORIZED_SUGGESTIONS = [
+  {
+    category: "Architecture",
+    icon: Layers,
+    prompts: [
+      "Walk me through the overall architecture & request flow",
+      "Where are the key database or state models defined?",
+    ],
+  },
+  {
+    category: "Getting Started",
+    icon: Compass,
+    prompts: [
+      "What is the main entry point and how does it bootstrap?",
+      "What environment variables are required to run this locally?",
+    ],
+  },
+  {
+    category: "Testing & APIs",
+    icon: Terminal,
+    prompts: [
+      "How are tests structured and what do they verify?",
+      "What public APIs or endpoints does this project expose?",
+    ],
+  },
 ];
 
-export default function ChatBox({ repoId }) {
-  const [messages, setMessages] = useState([]); // { role, content, citations }
+export default function ChatBox({ repoId, onPreviewCitation }) {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [streaming, setStreaming] = useState(false);
@@ -26,6 +60,14 @@ export default function ChatBox({ repoId }) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, streaming]);
+
+  function stopStreaming() {
+    if (cancelRef.current) {
+      cancelRef.current();
+      cancelRef.current = null;
+    }
+    setStreaming(false);
+  }
 
   function sendMessage(text) {
     const question = (text ?? input).trim();
@@ -94,9 +136,6 @@ export default function ChatBox({ repoId }) {
       },
     });
 
-    // Helper: remove the trailing assistant message if it never received
-    // any tokens. Otherwise the UI shows a permanent "..." (StreamingDots)
-    // next to a failed turn.
     function dropEmptyAssistantPlaceholder() {
       setMessages((prev) => {
         const last = prev[prev.length - 1];
@@ -117,43 +156,92 @@ export default function ChatBox({ repoId }) {
   return (
     <section className="panel flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <header className="border-b border-ruleSoft px-5 py-4">
-        <p className="eyebrow">conversation</p>
-        <p className="mt-1 font-mono text-[11px] text-ink-faint">
-          answers grounded in retrieved chunks · citations beneath each reply
-        </p>
+      <header className="flex items-center justify-between border-b border-rule/70 bg-bg-surface/90 px-6 py-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-ink">Codebase Assistant</h3>
+            <p className="font-mono text-[11px] text-ink-dim">
+              Grounded in AST tree-sitter chunks · Hybrid vector retrieval
+            </p>
+          </div>
+        </div>
+
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setMessages([])}
+            className="rounded px-2.5 py-1 font-mono text-[11px] text-ink-dim hover:bg-bg-hover hover:text-ink transition-colors"
+          >
+            Clear chat
+          </button>
+        )}
       </header>
 
       {/* Transcript */}
       <div
         ref={scrollRef}
-        className="flex-1 space-y-8 overflow-y-auto px-6 py-6"
+        className="flex-1 space-y-6 overflow-y-auto px-6 py-6"
       >
         {messages.length === 0 && (
-          <div>
-            <p className="eyebrow mb-3">try one of these</p>
-            <ul className="space-y-1.5 font-mono text-[13px]">
-              {SUGGESTIONS.map((s) => (
-                <li key={s}>
-                  <button
-                    onClick={() => sendMessage(s)}
-                    className="text-ink-muted transition hover:text-accent"
+          <div className="my-auto flex flex-col justify-center py-6">
+            <div className="mb-6 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent/20 to-brand-purple/20 text-accent border border-accent/20">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <h4 className="text-base font-semibold text-ink">
+                What would you like to know about this repository?
+              </h4>
+              <p className="mx-auto mt-1 max-w-md text-xs text-ink-muted">
+                Answers cite line ranges directly from the codebase. Select a prompt or type any question below.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 max-w-3xl mx-auto w-full">
+              {CATEGORIZED_SUGGESTIONS.map((cat) => {
+                const Icon = cat.icon;
+                return (
+                  <div
+                    key={cat.category}
+                    className="rounded-xl border border-rule/70 bg-bg-sub/70 p-3.5"
                   >
-                    <span className="text-ink-faint">›</span> {s}
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-accent-soft">
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{cat.category}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {cat.prompts.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => sendMessage(p)}
+                          className="w-full text-left rounded-lg p-2 text-xs text-ink-muted transition-all hover:bg-accent/10 hover:text-ink hover:border-accent/40"
+                        >
+                          › {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {messages.map((m, i) => (
-          <Message key={i} message={m} />
+          <Message
+            key={i}
+            message={m}
+            onPreviewCitation={onPreviewCitation}
+          />
         ))}
 
         {error && (
-          <div className="border-l-2 border-bad bg-bad/5 px-3 py-2 font-mono text-[12px] text-bad">
-            {error}
+          <div className="flex items-center gap-2 rounded-xl border border-bad/40 bg-bad/10 p-3.5 text-xs text-bad">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
       </div>
@@ -161,12 +249,9 @@ export default function ChatBox({ repoId }) {
       {/* Composer */}
       <form
         onSubmit={handleSubmit}
-        className="border-t border-ruleSoft bg-bg-sub px-4 py-3"
+        className="border-t border-rule/70 bg-bg-surface/95 p-4"
       >
-        <div className="flex items-end gap-2">
-          <span className="prompt-prefix pb-2.5 pl-1 font-mono text-sm">
-            ›
-          </span>
+        <div className="relative flex items-end rounded-xl border border-rule/80 bg-bg-sub/90 focus-within:border-accent/70 focus-within:ring-1 focus-within:ring-accent/70 transition-all">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -176,88 +261,146 @@ export default function ChatBox({ repoId }) {
                 sendMessage();
               }
             }}
-            placeholder="ask anything about this repo... (shift+enter for newline)"
+            placeholder="Ask about entry points, architecture, functions, logic... (Enter to send)"
             rows={1}
-            className="max-h-32 min-h-[2.25rem] flex-1 resize-none border-0 bg-transparent px-1 py-2 font-mono text-[13px] text-ink placeholder:text-ink-faint focus:outline-none"
+            className="max-h-36 min-h-[46px] flex-1 resize-none bg-transparent px-4 py-3 font-sans text-sm text-ink placeholder:text-ink-faint focus:outline-none"
             disabled={streaming}
           />
-          <button
-            type="submit"
-            disabled={streaming || !input.trim()}
-            className="border border-accent px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider2 text-accent transition hover:bg-accent hover:text-bg disabled:cursor-not-allowed disabled:opacity-40"
-          >
+
+          <div className="flex items-center gap-2 pb-2 pr-3">
             {streaming ? (
-              <span className="inline-flex items-center gap-1.5">
-                streaming
-                <span className="inline-block animate-caret">_</span>
-              </span>
+              <button
+                type="button"
+                onClick={stopStreaming}
+                className="flex items-center gap-1.5 rounded-lg bg-bad/20 px-3 py-1.5 text-xs font-semibold text-bad hover:bg-bad/30 transition-colors"
+                title="Stop generation"
+              >
+                <Square className="h-3.5 w-3.5 fill-current" />
+                <span>Stop</span>
+              </button>
             ) : (
-              "send ↵"
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-bg-deep transition-all hover:bg-accent-soft disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                title="Send message"
+              >
+                <Send className="h-4 w-4" />
+              </button>
             )}
-          </button>
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-ink-dim font-mono">
+          <span>Shift + Enter for new line</span>
+          <span>OpenAI text-embedding-3 + gpt-4o</span>
         </div>
       </form>
     </section>
   );
 }
 
-function Message({ message }) {
+function Message({ message, onPreviewCitation }) {
   const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
+
+  function copyAnswer() {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   if (isUser) {
     return (
-      <div className="font-mono text-[13px]">
-        <div className="flex items-baseline gap-2">
-          <span className="text-accent">›</span>
-          <span className="eyebrow text-ink-faint">you</span>
+      <div className="flex justify-end gap-3">
+        <div className="max-w-[85%] rounded-2xl bg-accent/15 border border-accent/30 px-5 py-3.5 text-sm text-ink shadow-sm">
+          <p className="whitespace-pre-wrap">{message.content}</p>
         </div>
-        <p className="mt-1.5 whitespace-pre-wrap pl-5 text-ink">
-          {message.content}
-        </p>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
+          <User className="h-4 w-4" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <p className="eyebrow mb-2 text-accent-soft">// answer</p>
-      <div className="markdown">
-        {message.content ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
-          </ReactMarkdown>
-        ) : message.streaming ? (
-          <StreamingDots />
-        ) : null}
+    <div className="flex gap-3.5 group">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-purple/20 text-brand-purple border border-brand-purple/30 mt-0.5">
+        <Sparkles className="h-4 w-4" />
       </div>
 
-      {message.citations && message.citations.length > 0 && (
-        <div className="mt-4 border-t border-ruleSoft pt-3">
-          <p className="eyebrow mb-2">sources</p>
-          <ul className="space-y-1.5">
-            {message.citations.slice(0, 6).map((c, idx) => (
-              <li key={idx}>
-                <CitationLink citation={c} index={idx} />
-              </li>
-            ))}
-          </ul>
+      <div className="min-w-0 flex-1 rounded-2xl border border-rule/70 bg-bg-sub/60 p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-3 border-b border-ruleSoft pb-2">
+          <span className="font-mono text-xs font-semibold text-accent-soft">
+            Codebase Insight
+          </span>
+          {message.content && !message.streaming && (
+            <button
+              onClick={copyAnswer}
+              className="flex items-center gap-1 text-[11px] font-mono text-ink-dim hover:text-ink transition-colors"
+              title="Copy answer"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3 w-3 text-good" />
+                  <span className="text-good">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
-      )}
+
+        <div className="markdown">
+          {message.content ? (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{ code: CodeBlock }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          ) : message.streaming ? (
+            <StreamingDots />
+          ) : null}
+        </div>
+
+        {message.citations && message.citations.length > 0 && (
+          <div className="mt-5 border-t border-ruleSoft pt-3.5">
+            <p className="eyebrow mb-2.5 text-accent-soft flex items-center gap-1.5">
+              <span>Grounded Code Sources ({message.citations.length})</span>
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {message.citations.slice(0, 6).map((c, idx) => (
+                <CitationLink
+                  key={idx}
+                  citation={c}
+                  index={idx}
+                  onPreview={onPreviewCitation}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function StreamingDots() {
   return (
-    <span className="inline-flex items-center gap-1">
-      <span className="h-1 w-1 animate-pulse-dot bg-ink-muted" />
+    <span className="inline-flex items-center gap-1.5 py-2">
+      <span className="h-1.5 w-1.5 rounded-full animate-bounce bg-accent" />
       <span
-        className="h-1 w-1 animate-pulse-dot bg-ink-muted"
-        style={{ animationDelay: "200ms" }}
+        className="h-1.5 w-1.5 rounded-full animate-bounce bg-accent"
+        style={{ animationDelay: "150ms" }}
       />
       <span
-        className="h-1 w-1 animate-pulse-dot bg-ink-muted"
-        style={{ animationDelay: "400ms" }}
+        className="h-1.5 w-1.5 rounded-full animate-bounce bg-accent"
+        style={{ animationDelay: "300ms" }}
       />
     </span>
   );
