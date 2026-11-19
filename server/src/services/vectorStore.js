@@ -90,10 +90,7 @@ async function dropCollection(name) {
 }
 
 // chunks: [{ content, metadata }], vectors: [[...]]
-async function upsertChunks({ collectionName, chunks, vectors }) {
-  if (chunks.length !== vectors.length) {
-    throw new Error("Chunks and vectors length mismatch");
-  }
+async function upsertChunks({ collectionName, chunks, vectors = [] }) {
   if (chunks.length === 0) return;
 
   // 1. Always persist to MongoDB (reliable primary vector storage)
@@ -102,7 +99,7 @@ async function upsertChunks({ collectionName, chunks, vectors }) {
     const docs = chunks.map((chunk, i) => ({
       collectionName,
       content: chunk.content,
-      vector: vectors[i],
+      vector: (vectors && vectors[i]) || [],
       metadata: chunk.metadata,
     }));
     await Chunk.insertMany(docs);
@@ -112,67 +109,80 @@ async function upsertChunks({ collectionName, chunks, vectors }) {
     throw err;
   }
 
-  // 2. Best-effort sync to Qdrant (will not throw or fail the indexing if Qdrant is down)
-  try {
-    const points = chunks.map((chunk, i) => ({
-      id: uuidv4(),
-      vector: vectors[i],
-      payload: {
-        content: chunk.content,
-        ...chunk.metadata,
-      },
-    }));
+  // 2. Best-effort sync to Qdrant (will not throw or fail the indexing if Qdrant is down or vectors empty)
+  if (vectors && vectors.length === chunks.length) {
+    try {
+      const points = chunks.map((chunk, i) => ({
+        id: uuidv4(),
+        vector: vectors[i],
+        payload: {
+          content: chunk.content,
+          ...chunk.metadata,
+        },
+      }));
 
-    const PAGE = 128;
-    for (let i = 0; i < points.length; i += PAGE) {
-      const slice = points.slice(i, i + PAGE);
-      await client().upsert(collectionName, { points: slice, wait: true });
+      const PAGE = 128;
+      for (let i = 0; i < points.length; i += PAGE) {
+        const slice = points.slice(i, i + PAGE);
+        await client().upsert(collectionName, { points: slice, wait: true });
+      }
+      logger.info(`Upserted ${points.length} chunks into Qdrant (${collectionName})`);
+    } catch (err) {
+      logger.warn(
+        `Qdrant upsert skipped (${err.message}); built-in MongoDB vector store active.`
+      );
     }
-    logger.info(`Upserted ${points.length} chunks into Qdrant (${collectionName})`);
-  } catch (err) {
-    logger.warn(
-      `Qdrant upsert skipped (${err.message}); built-in MongoDB vector store active.`
-    );
   }
 }
 
-// Hybrid search over MongoDB chunks: exact symbol matches + in-memory cosine similarity
+// Hybrid search over MongoDB chunks: exact symbol matches, path matches + in-memory cosine similarity
 async function searchMongo({ collectionName, vector, keyword, topK = 8 }) {
   const chunks = await Chunk.find({ collectionName }).lean();
   if (chunks.length === 0) return [];
 
-  let keywordHits = [];
-  if (keyword) {
-    const kwLower = keyword.toLowerCase();
-    keywordHits = chunks
-      .filter((c) => (c.metadata?.name || "").toLowerCase() === kwLower)
-      .slice(0, 5)
-      .map((c) => ({
-        id: String(c._id),
-        score: 1.0,
-        payload: {
-          content: c.content,
-          ...c.metadata,
-        },
-      }));
-  }
+  const scored = chunks.map((c) => {
+    let score = 0;
+    const name = (c.metadata?.name || "").toLowerCase();
+    const filePath = (c.metadata?.filePath || "").replace(/\\/g, "/").toLowerCase();
+    const content = (c.content || "").toLowerCase();
 
-  // Cosine scoring over all chunks in collection (takes ~5-7ms)
-  const vectorHits = chunks.map((c) => ({
-    id: String(c._id),
-    score: cosineSimilarity(c.vector, vector),
-    payload: {
-      content: c.content,
-      ...c.metadata,
-    },
-  }));
+    // 1. Symbol & keyword scoring
+    if (keyword) {
+      const kw = keyword.toLowerCase();
+      if (name === kw) score += 1.0;
+      else if (name.includes(kw)) score += 0.85;
+      else if (filePath.includes(kw)) score += 0.7;
+      else if (content.includes(kw)) score += 0.45;
+    }
 
-  // Merge exact matches first, then best cosine hits
-  const merged = new Map();
-  for (const r of keywordHits) merged.set(r.id, r);
-  for (const r of vectorHits) if (!merged.has(r.id)) merged.set(r.id, r);
+    // 2. Vector cosine scoring (if vectors present)
+    if (vector && Array.isArray(c.vector) && c.vector.length > 0) {
+      const cosScore = cosineSimilarity(c.vector, vector);
+      score = Math.max(score, cosScore);
+    }
 
-  return Array.from(merged.values())
+    // 3. Architectural priority boost if ungrounded (e.g. general "What does this repo do?" queries)
+    if (score === 0) {
+      if (/(^|\/)(index|main|app|server|router)\.[a-z0-9]+$/i.test(filePath)) {
+        score = 0.65;
+      } else if (/^(src|lib|app|core|routes|models|controllers|services)\//i.test(filePath)) {
+        score = 0.45;
+      } else {
+        score = 0.25;
+      }
+    }
+
+    return {
+      id: String(c._id),
+      score,
+      payload: {
+        content: c.content,
+        ...c.metadata,
+      },
+    };
+  });
+
+  return scored
     .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, topK);
 }

@@ -61,11 +61,32 @@ async function embedTexts(texts) {
         }
         success = true;
       } catch (err) {
-        // If the provider specifies a retry delay (e.g. Gemini rate limits), honor it and retry!
+        // Check for daily quota exhaustion (e.g. 1000/day limit on Gemini free tier)
+        const isDailyQuota =
+          err.status === 429 &&
+          (err.message.includes("per day") ||
+            err.message.includes("quota") ||
+            err.message.includes("Quota exceeded"));
+
+        if (isDailyQuota) {
+          logger.warn(
+            `Embedding API quota reached (${err.message.slice(0, 100)}...). Proceeding with AST symbol & full-text indexing.`
+          );
+          // Return whatever vectors we managed to get so far without failing
+          return { vectors: results.filter(Boolean), usedTokens, quotaExceeded: true };
+        }
+
+        // If the provider specifies a short per-minute retry delay, honor it
         const match = err.message && err.message.match(/retry in ([\d.]+)s/i);
-        if (err.status === 429 && match && retries > 0) {
-          // Add a 2.5s safety buffer to ensure the provider's rate-limit window has genuinely cleared
-          const waitTime = Math.ceil(parseFloat(match[1]) * 1000) + 2500;
+        if (err.status === 429 && match && retries > 1) {
+          const waitSeconds = parseFloat(match[1]);
+          if (waitSeconds > 15) {
+            logger.warn(
+              `Embedding rate limit wait too long (${waitSeconds}s). Falling back to AST symbol indexing.`
+            );
+            return { vectors: results.filter(Boolean), usedTokens, quotaExceeded: true };
+          }
+          const waitTime = Math.ceil(waitSeconds * 1000) + 1500;
           logger.warn(
             `Rate limit hit! Waiting ${(waitTime / 1000).toFixed(1)}s before retrying (${retries} retries left)...`
           );
@@ -79,20 +100,19 @@ async function embedTexts(texts) {
           (err.message && err.message.includes("credit_balance_exhausted")) ||
           (err.message && err.message.includes("no credits remaining"))
         ) {
-          throw new Error(
-            "AI provider credit balance exhausted. Please check your API billing or configure free Gemini."
+          logger.warn(
+            "Embedding API credit balance exhausted. Falling back to AST symbol indexing."
           );
+          return { vectors: results.filter(Boolean), usedTokens, quotaExceeded: true };
         }
 
-        if (err.status === 429 && retries > 0) {
-          const waitTime = 12000;
-          logger.warn(
-            `Rate limit hit! Waiting ${(waitTime / 1000).toFixed(1)}s before retrying (${retries} retries left)...`
-          );
+        if (err.status === 429 && retries > 1) {
+          const waitTime = 5000;
           await delay(waitTime);
           retries--;
         } else {
-          throw err;
+          logger.warn(`Embedding batch failed (${err.message}); continuing with AST symbol indexing.`);
+          return { vectors: results.filter(Boolean), usedTokens, quotaExceeded: true };
         }
       }
     }
@@ -102,8 +122,13 @@ async function embedTexts(texts) {
 }
 
 async function embedSingle(text) {
-  const { vectors } = await embedTexts([text]);
-  return vectors[0];
+  try {
+    const { vectors } = await embedTexts([text]);
+    return vectors[0] || null;
+  } catch (err) {
+    logger.warn(`embedSingle skipped: ${err.message}`);
+    return null;
+  }
 }
 
 module.exports = { embedTexts, embedSingle, EMBED_DIM };
