@@ -51,6 +51,7 @@ const env = {
     maxFiles: asInt(process.env.MAX_FILES_PER_REPO, 500),
     maxLines: asInt(process.env.MAX_LINES_PER_REPO, 100_000),
     maxFileSize: asInt(process.env.MAX_FILE_SIZE_BYTES, 200_000),
+    maxChunks: asInt(process.env.MAX_CHUNKS_PER_REPO, 120),
     embedBatchSize: asInt(process.env.EMBED_BATCH_SIZE, 64),
     cacheReindexHours: asInt(process.env.CACHE_REINDEX_HOURS, 24),
   },

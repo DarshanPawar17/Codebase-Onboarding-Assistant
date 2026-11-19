@@ -29,7 +29,12 @@ function isSafeUserError(err) {
     m.includes("OpenAI credit balance exhausted") ||
     m.includes("quota exceeded") ||
     m.includes("credits remaining") ||
-    m.includes("billing")
+    m.includes("billing") ||
+    m.includes("rate limit") ||
+    m.includes("429") ||
+    m.includes("timed out") ||
+    m.includes("timeout") ||
+    m.includes("fetch failed")
   );
 }
 

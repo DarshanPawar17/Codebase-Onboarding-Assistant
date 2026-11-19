@@ -28,7 +28,6 @@ const LANGUAGES = {
       "method_definition",
       "class_declaration",
       "generator_function_declaration",
-      "export_statement",
     ]),
   },
   typescript: {
@@ -40,7 +39,6 @@ const LANGUAGES = {
       "interface_declaration",
       "type_alias_declaration",
       "enum_declaration",
-      "export_statement",
     ]),
   },
   tsx: {
@@ -52,7 +50,6 @@ const LANGUAGES = {
       "interface_declaration",
       "type_alias_declaration",
       "enum_declaration",
-      "export_statement",
     ]),
   },
   python: {
@@ -97,6 +94,26 @@ const IGNORED_DIRS = new Set([
   "target",
   "bin",
   "obj",
+  // Skip tests & auxiliary directories to keep onboarding fast & focused
+  "test",
+  "tests",
+  "__tests__",
+  "spec",
+  "specs",
+  "fixtures",
+  "fixture",
+  "mocks",
+  "mock",
+  "tmp",
+  "temp",
+  "docs",
+  "documentation",
+  "examples",
+  "samples",
+  "storybook",
+  ".storybook",
+  "e2e",
+  "cypress",
 ]);
 
 // File extensions to never even read (binary / lockfiles / generated).
@@ -138,6 +155,14 @@ async function walk(dir, repoRoot, out = []) {
       if (SKIP_FILENAMES.has(lower)) continue;
       const ext = path.extname(lower);
       if (SKIP_EXTENSIONS.has(ext)) continue;
+      // Skip test, spec, story, and declaration files
+      if (
+        /\.(test|spec)\.[a-z0-9]+$/i.test(lower) ||
+        /\.stories\.[a-z0-9]+$/i.test(lower) ||
+        /\.d\.ts$/i.test(lower)
+      ) {
+        continue;
+      }
       // Only chunk languages we have grammars for in MVP.
       if (!EXT_TO_LANG[ext]) continue;
       out.push({
@@ -311,7 +336,69 @@ async function chunkRepository({ repoRoot }) {
     }
   }
 
-  return { chunks: allChunks, stats };
+  // Cap and prioritize high-signal architectural chunks so embedding stays fast & reliable
+  const maxChunks = limits.maxChunks || 120;
+  const filteredChunks = prioritizeChunks(allChunks, maxChunks);
+
+  return { chunks: filteredChunks, stats };
+}
+
+function prioritizeChunks(chunks, maxChunks) {
+  if (chunks.length <= maxChunks) return chunks;
+
+  // Group chunks by file to prevent a single file from starving the rest
+  const byFile = new Map();
+  for (const c of chunks) {
+    const list = byFile.get(c.metadata.filePath) || [];
+    list.push(c);
+    byFile.set(c.metadata.filePath, list);
+  }
+
+  function fileScore(filePath) {
+    const norm = filePath.replace(/\\/g, "/").toLowerCase();
+    let score = 10;
+    // Core entry files
+    if (/(^|\/)(index|main|app|server|router|mod)\.[a-z0-9]+$/i.test(norm)) {
+      score += 30;
+    }
+    // High-value architecture directories
+    if (/^(src|lib|app|core|routes|models|controllers|services|api)\//i.test(norm)) {
+      score += 15;
+    }
+    // Prefer shallower paths
+    const depth = norm.split("/").length;
+    score -= depth * 2;
+    return score;
+  }
+
+  // Sort files by architectural relevance
+  const sortedFiles = Array.from(byFile.entries()).sort(
+    ([fA], [fB]) => fileScore(fB) - fileScore(fA)
+  );
+
+  // Round-robin pick chunks across files to guarantee diverse architectural coverage
+  const selected = [];
+  let round = 0;
+  let addedInRound = true;
+
+  while (selected.length < maxChunks && addedInRound) {
+    addedInRound = false;
+    for (const [, fileChunks] of sortedFiles) {
+      if (round < fileChunks.length && selected.length < maxChunks) {
+        selected.push(fileChunks[round]);
+        addedInRound = true;
+      }
+    }
+    round++;
+  }
+
+  // Sort back by file path and startLine for clean order
+  return selected.sort((a, b) => {
+    if (a.metadata.filePath !== b.metadata.filePath) {
+      return a.metadata.filePath.localeCompare(b.metadata.filePath);
+    }
+    return (a.metadata.startLine || 0) - (b.metadata.startLine || 0);
+  });
 }
 
 module.exports = {

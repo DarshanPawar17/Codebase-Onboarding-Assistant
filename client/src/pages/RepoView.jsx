@@ -1,41 +1,85 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, GitFork } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, RotateCw } from "lucide-react";
 
 import ChatBox from "../components/ChatBox.jsx";
 import ArchitectureView from "../components/ArchitectureView.jsx";
 import CodeModal from "../components/CodeModal.jsx";
-import { getRepo } from "../api/client.js";
+import IndexingProgress from "../components/IndexingProgress.jsx";
+import { getRepo, analyzeRepo } from "../api/client.js";
 
 export default function RepoView() {
   const { repoId } = useParams();
   const [repo, setRepo] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
   const [selectedCitation, setSelectedCitation] = useState(null);
+  const pollTimerRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError("");
-    getRepo(repoId)
-      .then((r) => {
-        if (!cancelled) setRepo(r);
-      })
-      .catch((err) => {
+
+    async function fetchRepo() {
+      try {
+        const r = await getRepo(repoId);
+        if (cancelled) return;
+        setRepo(r);
+        setLoading(false);
+
+        // If repo is currently being indexed in the background, poll every 2.5 seconds
+        if (r.status === "indexing" || r.status === "pending") {
+          pollTimerRef.current = setTimeout(fetchRepo, 2500);
+        }
+      } catch (err) {
         if (!cancelled) {
           setError(
             err?.response?.data?.error || err.message || "Failed to load repo."
           );
+          setLoading(false);
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      }
+    }
+
+    setLoading(true);
+    setError("");
+    fetchRepo();
+
     return () => {
       cancelled = true;
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     };
   }, [repoId]);
+
+  async function handleRetry() {
+    if (!repo?.repoUrl || retrying) return;
+    setRetrying(true);
+    setError("");
+    try {
+      const updated = await analyzeRepo(repo.repoUrl, { force: true });
+      setRepo(updated);
+      // Restart polling
+      if (updated.status === "indexing" || updated.status === "pending") {
+        pollTimerRef.current = setTimeout(async function poll() {
+          try {
+            const r = await getRepo(repoId);
+            setRepo(r);
+            if (r.status === "indexing" || r.status === "pending") {
+              pollTimerRef.current = setTimeout(poll, 2500);
+            }
+          } catch {
+            // ignore poll errors
+          }
+        }, 2500);
+      }
+    } catch (err) {
+      setError(
+        err?.response?.data?.error || err.message || "Failed to restart indexing."
+      );
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -44,12 +88,65 @@ export default function RepoView() {
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
         <p className="font-mono text-xs text-ink-muted">
-          Loading repository architecture & vector indexes...
+          Connecting to repository architecture & vector indexes...
         </p>
       </div>
     );
   }
 
+  // Repository failed during indexing
+  if (repo && repo.status === "failed") {
+    return (
+      <div className="mx-auto max-w-xl py-12">
+        <Link to="/" className="btn-ghost mb-6 inline-flex items-center gap-1.5">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Home</span>
+        </Link>
+        <div className="rounded-2xl border border-bad/40 bg-bad/5 p-6 text-bad shadow-lg">
+          <div className="flex items-center gap-2 mb-2 font-semibold text-base">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <span>Indexing Could Not Complete</span>
+          </div>
+          <p className="text-xs sm:text-sm text-bad/90 font-mono mt-2 leading-relaxed">
+            {repo.error || "The repository could not be indexed."}
+          </p>
+          <div className="mt-6 flex items-center gap-3">
+            <button
+              onClick={handleRetry}
+              disabled={retrying}
+              className="btn-primary"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`} />
+              <span>{retrying ? "Retrying..." : "Retry Indexing"}</span>
+            </button>
+            <Link to="/" className="btn-ghost">
+              Try Another Repo
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Repository is currently indexing in the background
+  if (repo && (repo.status === "indexing" || repo.status === "pending")) {
+    return (
+      <div className="mx-auto max-w-3xl py-6 sm:py-10">
+        <div className="mb-4 flex items-center justify-between">
+          <Link to="/" className="btn-ghost inline-flex items-center gap-1.5">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Cancel</span>
+          </Link>
+          <span className="font-mono text-xs text-accent animate-pulse">
+            ● Indexing in progress...
+          </span>
+        </div>
+        <IndexingProgress repoUrl={repo.repoUrl || `${repo.owner}/${repo.name}`} />
+      </div>
+    );
+  }
+
+  // Load error
   if (error || !repo) {
     return (
       <div className="mx-auto max-w-xl py-12">
@@ -68,6 +165,7 @@ export default function RepoView() {
     );
   }
 
+  // Repo is ready! Render the full workspace
   return (
     <div className="flex h-[calc(100vh-140px)] flex-col gap-3">
       {/* Top Utility Bar */}
