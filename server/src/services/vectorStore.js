@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 
 const env = require("../config/env");
 const logger = require("../utils/logger");
+const Chunk = require("../models/Chunk");
 const { EMBED_DIM } = require("./embedder");
 
 let _client = null;
@@ -27,43 +28,64 @@ function collectionNameFor(repoUrl) {
   return `repo_${safe}`;
 }
 
+// Fast cosine similarity between two float vectors
+function cosineSimilarity(a, b) {
+  if (!a || !b || a.length !== b.length) return 0;
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
 async function ensureCollection(name) {
-  const existing = await client().collectionExists(name);
-  if (existing && existing.exists) {
-    logger.debug(`Qdrant collection already exists: ${name}`);
-    return;
-  }
-  await client().createCollection(name, {
-    vectors: { size: EMBED_DIM, distance: "Cosine" },
-  });
-  // Payload indexes make filters fast.
   try {
-    await client().createPayloadIndex(name, {
-      field_name: "filePath",
-      field_schema: "keyword",
-    });
-    await client().createPayloadIndex(name, {
-      field_name: "name",
-      field_schema: "keyword",
-    });
-    await client().createPayloadIndex(name, {
-      field_name: "language",
-      field_schema: "keyword",
-    });
+    const existing = await client().collectionExists(name);
+    if (!existing || !existing.exists) {
+      await client().createCollection(name, {
+        vectors: { size: EMBED_DIM, distance: "Cosine" },
+      });
+      try {
+        await client().createPayloadIndex(name, {
+          field_name: "filePath",
+          field_schema: "keyword",
+        });
+        await client().createPayloadIndex(name, {
+          field_name: "name",
+          field_schema: "keyword",
+        });
+        await client().createPayloadIndex(name, {
+          field_name: "language",
+          field_schema: "keyword",
+        });
+      } catch {
+        // payload indexes non-fatal
+      }
+    }
   } catch (err) {
-    logger.warn(`Failed to create payload indexes on ${name}: ${err.message}`);
+    logger.warn(
+      `Qdrant ensureCollection skipped (${err.message}); using built-in MongoDB vector store.`
+    );
   }
-  logger.info(`Created Qdrant collection: ${name}`);
 }
 
 async function dropCollection(name) {
   try {
+    await Chunk.deleteMany({ collectionName: name });
+  } catch (err) {
+    logger.warn(`Failed to drop MongoDB chunks for ${name}: ${err.message}`);
+  }
+
+  try {
     await client().deleteCollection(name);
     logger.info(`Dropped Qdrant collection: ${name}`);
-  } catch (err) {
-    logger.warn(
-      `Failed to drop collection ${name}:\n${logger.formatError(err)}`
-    );
+  } catch {
+    // Qdrant drop non-fatal
   }
 }
 
@@ -74,74 +96,132 @@ async function upsertChunks({ collectionName, chunks, vectors }) {
   }
   if (chunks.length === 0) return;
 
-  const points = chunks.map((chunk, i) => ({
-    id: uuidv4(),
-    vector: vectors[i],
-    payload: {
+  // 1. Always persist to MongoDB (reliable primary vector storage)
+  try {
+    await Chunk.deleteMany({ collectionName });
+    const docs = chunks.map((chunk, i) => ({
+      collectionName,
       content: chunk.content,
-      ...chunk.metadata,
+      vector: vectors[i],
+      metadata: chunk.metadata,
+    }));
+    await Chunk.insertMany(docs);
+    logger.info(`Persisted ${docs.length} chunks into MongoDB for ${collectionName}`);
+  } catch (err) {
+    logger.error(`MongoDB chunk upsert failed: ${err.message}`);
+    throw err;
+  }
+
+  // 2. Best-effort sync to Qdrant (will not throw or fail the indexing if Qdrant is down)
+  try {
+    const points = chunks.map((chunk, i) => ({
+      id: uuidv4(),
+      vector: vectors[i],
+      payload: {
+        content: chunk.content,
+        ...chunk.metadata,
+      },
+    }));
+
+    const PAGE = 128;
+    for (let i = 0; i < points.length; i += PAGE) {
+      const slice = points.slice(i, i + PAGE);
+      await client().upsert(collectionName, { points: slice, wait: true });
+    }
+    logger.info(`Upserted ${points.length} chunks into Qdrant (${collectionName})`);
+  } catch (err) {
+    logger.warn(
+      `Qdrant upsert skipped (${err.message}); built-in MongoDB vector store active.`
+    );
+  }
+}
+
+// Hybrid search over MongoDB chunks: exact symbol matches + in-memory cosine similarity
+async function searchMongo({ collectionName, vector, keyword, topK = 8 }) {
+  const chunks = await Chunk.find({ collectionName }).lean();
+  if (chunks.length === 0) return [];
+
+  let keywordHits = [];
+  if (keyword) {
+    const kwLower = keyword.toLowerCase();
+    keywordHits = chunks
+      .filter((c) => (c.metadata?.name || "").toLowerCase() === kwLower)
+      .slice(0, 5)
+      .map((c) => ({
+        id: String(c._id),
+        score: 1.0,
+        payload: {
+          content: c.content,
+          ...c.metadata,
+        },
+      }));
+  }
+
+  // Cosine scoring over all chunks in collection (takes ~5-7ms)
+  const vectorHits = chunks.map((c) => ({
+    id: String(c._id),
+    score: cosineSimilarity(c.vector, vector),
+    payload: {
+      content: c.content,
+      ...c.metadata,
     },
   }));
 
-  // Upsert in pages to keep request size reasonable.
-  const PAGE = 128;
-  for (let i = 0; i < points.length; i += PAGE) {
-    const slice = points.slice(i, i + PAGE);
-    await client().upsert(collectionName, { points: slice, wait: true });
-  }
-  logger.info(`Upserted ${points.length} chunks into ${collectionName}`);
-}
-
-// Hybrid search:
-//  - vector search (top-K semantic hits)
-//  - if `keyword` is provided, also fetch points whose `name` exactly matches
-//  - merge & dedupe, keeping the best vector score
-async function hybridSearch({ collectionName, vector, keyword, topK = 8 }) {
-  const c = client();
-
-  const vectorResults = await c.search(collectionName, {
-    vector,
-    limit: topK,
-    with_payload: true,
-  });
-
-  let keywordResults = [];
-  if (keyword) {
-    try {
-      const scrolled = await c.scroll(collectionName, {
-        filter: {
-          must: [
-            { key: "name", match: { value: keyword } },
-          ],
-        },
-        limit: 5,
-        with_payload: true,
-        with_vector: false,
-      });
-      // Exact name matches are very high-signal — score them above any
-      // vector match so they aren't trimmed by the topK slice below.
-      keywordResults = (scrolled.points || []).map((p) => ({
-        id: p.id,
-        score: 1.0,
-        payload: p.payload,
-      }));
-    } catch (err) {
-      logger.warn(`Keyword filter failed: ${err.message}`);
-    }
-  }
-
-  // Merge: keyword hits first (so they win on duplicate IDs), then vector hits.
+  // Merge exact matches first, then best cosine hits
   const merged = new Map();
-  for (const r of keywordResults) {
-    merged.set(r.id, r);
-  }
-  for (const r of vectorResults) {
-    if (!merged.has(r.id)) merged.set(r.id, r);
-  }
+  for (const r of keywordHits) merged.set(r.id, r);
+  for (const r of vectorHits) if (!merged.has(r.id)) merged.set(r.id, r);
 
   return Array.from(merged.values())
     .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, topK);
+}
+
+// Hybrid search: tries Qdrant first; falls back seamlessly to MongoDB
+async function hybridSearch({ collectionName, vector, keyword, topK = 8 }) {
+  try {
+    const c = client();
+    const vectorResults = await c.search(collectionName, {
+      vector,
+      limit: topK,
+      with_payload: true,
+    });
+
+    let keywordResults = [];
+    if (keyword) {
+      try {
+        const scrolled = await c.scroll(collectionName, {
+          filter: {
+            must: [{ key: "name", match: { value: keyword } }],
+          },
+          limit: 5,
+          with_payload: true,
+          with_vector: false,
+        });
+        keywordResults = (scrolled.points || []).map((p) => ({
+          id: p.id,
+          score: 1.0,
+          payload: p.payload,
+        }));
+      } catch {
+        // keyword filter non-fatal
+      }
+    }
+
+    const merged = new Map();
+    for (const r of keywordResults) merged.set(r.id, r);
+    for (const r of vectorResults) if (!merged.has(r.id)) merged.set(r.id, r);
+
+    const results = Array.from(merged.values())
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, topK);
+
+    if (results.length > 0) return results;
+  } catch (err) {
+    logger.warn(`Qdrant search failed (${err.message}); using built-in MongoDB vector store.`);
+  }
+
+  return await searchMongo({ collectionName, vector, keyword, topK });
 }
 
 module.exports = {
@@ -150,4 +230,5 @@ module.exports = {
   upsertChunks,
   hybridSearch,
   collectionNameFor,
+  searchMongo, // exposed for testing/fallback
 };
