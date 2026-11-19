@@ -16,10 +16,16 @@ function client() {
 }
 
 const SYSTEM_PROMPT = `You are a senior engineer helping someone understand a codebase.
-Use ONLY the provided code chunks (RETRIEVED CONTEXT) as the source of truth.
-When you reference specific code, cite it inline with the format [<filePath>:<startLine>-<endLine>], using ONLY paths and line numbers that appear in the RETRIEVED CONTEXT headers.
-Never invent file names, function names, or line numbers; if the answer isn't in the retrieved chunks, say "I don't see that in the indexed code" instead of guessing.
-Be concise. Prefer short paragraphs and bullet points over long prose.`;
+Use ONLY the provided code chunks (CODE CONTEXT) as the source of truth.
+
+RESPONSE STRUCTURE:
+1. **Direct Short Answer First**: The very first sentence or short paragraph (1-2 sentences max) MUST directly answer the user's question. State the core answer immediately with no filler or preambles like "Based on...".
+2. **Details & Breakdown**: Beneath the direct answer, provide supporting technical details, step-by-step flow, or key functions using concise bullet points and code blocks.
+
+GROUNDING & CITATIONS:
+- When you reference specific code, cite it inline with the format [<filePath>:<startLine>-<endLine>], using ONLY paths and line numbers that appear in the CODE CONTEXT headers.
+- Never invent file names, function names, or line numbers; if the answer isn't in the retrieved chunks, say "I don't see that in the indexed code" instead of guessing.
+- Keep responses clean, technical, and immediately actionable.`;
 
 function formatChunksAsContext(chunks) {
   return chunks
@@ -42,10 +48,13 @@ function buildChatMessages({ chunks, history, userQuestion }) {
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "system",
-      content: `RETRIEVED CONTEXT:\n\n${context || "(no chunks retrieved)"}`,
+      content: `CODE CONTEXT:\n\n${context || "(no code chunks retrieved)"}`,
     },
     ...trimmedHistory,
-    { role: "user", content: userQuestion },
+    {
+      role: "user",
+      content: `${userQuestion}\n\n(Important: Start with a direct 1-2 sentence short answer first, then provide details/breakdown beneath it.)`,
+    },
   ];
 }
 
