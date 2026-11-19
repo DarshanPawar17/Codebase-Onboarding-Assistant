@@ -156,15 +156,15 @@ export default function ChatBox({ repoId, onPreviewCitation }) {
   return (
     <section className="panel flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-rule/70 bg-bg-surface/90 px-6 py-4">
+      <header className="flex items-center justify-between border-b border-rule bg-bg-surface px-6 py-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-800 text-zinc-200 border border-zinc-700/60">
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-ink">Codebase Assistant</h3>
             <p className="font-mono text-[11px] text-ink-dim">
-              Grounded in AST tree-sitter chunks · Hybrid vector retrieval
+              Grounded in AST tree-sitter chunks · Vector retrieval
             </p>
           </div>
         </div>
@@ -188,8 +188,8 @@ export default function ChatBox({ repoId, onPreviewCitation }) {
         {messages.length === 0 && (
           <div className="my-auto flex flex-col justify-center py-6">
             <div className="mb-6 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent/20 to-brand-purple/20 text-accent border border-accent/20">
-                <Sparkles className="h-6 w-6" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800 text-zinc-200 border border-zinc-700 shadow-sm">
+                <Sparkles className="h-5 w-5" />
               </div>
               <h4 className="text-base font-semibold text-ink">
                 What would you like to know about this repository?
@@ -205,10 +205,10 @@ export default function ChatBox({ repoId, onPreviewCitation }) {
                 return (
                   <div
                     key={cat.category}
-                    className="rounded-xl border border-rule/70 bg-bg-sub/70 p-3.5"
+                    className="rounded-xl border border-rule bg-bg-sub/80 p-3.5"
                   >
-                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-accent-soft">
-                      <Icon className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-zinc-300">
+                      <Icon className="h-3.5 w-3.5 text-zinc-400" />
                       <span>{cat.category}</span>
                     </div>
                     <div className="space-y-1.5">
@@ -217,7 +217,7 @@ export default function ChatBox({ repoId, onPreviewCitation }) {
                           key={p}
                           type="button"
                           onClick={() => sendMessage(p)}
-                          className="w-full text-left rounded-lg p-2 text-xs text-ink-muted transition-all hover:bg-accent/10 hover:text-ink hover:border-accent/40"
+                          className="w-full text-left rounded-lg p-2 text-xs text-ink-muted transition-all hover:bg-zinc-800 hover:text-white"
                         >
                           › {p}
                         </button>
@@ -249,9 +249,9 @@ export default function ChatBox({ repoId, onPreviewCitation }) {
       {/* Composer */}
       <form
         onSubmit={handleSubmit}
-        className="border-t border-rule/70 bg-bg-surface/95 p-4"
+        className="border-t border-rule bg-bg-surface p-4"
       >
-        <div className="relative flex items-end rounded-xl border border-rule/80 bg-bg-sub/90 focus-within:border-accent/70 focus-within:ring-1 focus-within:ring-accent/70 transition-all">
+        <div className="relative flex items-end rounded-xl border border-rule bg-bg-sub focus-within:border-zinc-500 focus-within:ring-1 focus-within:ring-zinc-600 transition-all">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -282,7 +282,7 @@ export default function ChatBox({ repoId, onPreviewCitation }) {
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-bg-deep transition-all hover:bg-accent-soft disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-zinc-950 transition-all hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                 title="Send message"
               >
                 <Send className="h-4 w-4" />
@@ -293,7 +293,7 @@ export default function ChatBox({ repoId, onPreviewCitation }) {
 
         <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-ink-dim font-mono">
           <span>Shift + Enter for new line</span>
-          <span>OpenAI text-embedding-3 + gpt-4o</span>
+          <span>AST-RAG Hybrid Vector Search</span>
         </div>
       </form>
     </section>
@@ -313,10 +313,10 @@ function Message({ message, onPreviewCitation }) {
   if (isUser) {
     return (
       <div className="flex justify-end gap-3">
-        <div className="max-w-[85%] rounded-2xl bg-accent/15 border border-accent/30 px-5 py-3.5 text-sm text-ink shadow-sm">
+        <div className="max-w-[85%] rounded-2xl bg-zinc-800 border border-zinc-700/80 px-5 py-3.5 text-sm text-zinc-100 shadow-sm">
           <p className="whitespace-pre-wrap">{message.content}</p>
         </div>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300">
           <User className="h-4 w-4" />
         </div>
       </div>
@@ -325,13 +325,13 @@ function Message({ message, onPreviewCitation }) {
 
   return (
     <div className="flex gap-3.5 group">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-purple/20 text-brand-purple border border-brand-purple/30 mt-0.5">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800 mt-0.5">
         <Sparkles className="h-4 w-4" />
       </div>
 
-      <div className="min-w-0 flex-1 rounded-2xl border border-rule/70 bg-bg-sub/60 p-5 shadow-sm">
+      <div className="min-w-0 flex-1 rounded-2xl border border-rule bg-bg-sub/80 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3 border-b border-ruleSoft pb-2">
-          <span className="font-mono text-xs font-semibold text-accent-soft">
+          <span className="font-mono text-xs font-semibold text-zinc-300">
             Codebase Insight
           </span>
           {message.content && !message.streaming && (
@@ -370,7 +370,7 @@ function Message({ message, onPreviewCitation }) {
 
         {message.citations && message.citations.length > 0 && (
           <div className="mt-5 border-t border-ruleSoft pt-3.5">
-            <p className="eyebrow mb-2.5 text-accent-soft flex items-center gap-1.5">
+            <p className="eyebrow mb-2.5 text-zinc-400 flex items-center gap-1.5">
               <span>Grounded Code Sources ({message.citations.length})</span>
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -393,13 +393,13 @@ function Message({ message, onPreviewCitation }) {
 function StreamingDots() {
   return (
     <span className="inline-flex items-center gap-1.5 py-2">
-      <span className="h-1.5 w-1.5 rounded-full animate-bounce bg-accent" />
+      <span className="h-1.5 w-1.5 rounded-full animate-bounce bg-zinc-400" />
       <span
-        className="h-1.5 w-1.5 rounded-full animate-bounce bg-accent"
+        className="h-1.5 w-1.5 rounded-full animate-bounce bg-zinc-400"
         style={{ animationDelay: "150ms" }}
       />
       <span
-        className="h-1.5 w-1.5 rounded-full animate-bounce bg-accent"
+        className="h-1.5 w-1.5 rounded-full animate-bounce bg-zinc-400"
         style={{ animationDelay: "300ms" }}
       />
     </span>

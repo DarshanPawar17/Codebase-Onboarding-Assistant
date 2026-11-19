@@ -5,37 +5,37 @@ export default {
     extend: {
       colors: {
         bg: {
-          DEFAULT: "#090d16", // Slate-charcoal deep canvas
-          deep: "#05070b",    // Terminal/code background
-          surface: "#0e131f", // Elevated panel surface
-          soft: "#141c2c",    // Card background
-          sub: "#0c101a",     // Nested pane background
-          hover: "#1a2438",   // Subtle interactive hover
+          DEFAULT: "#09090b", // Pure dark obsidian / zinc-950 canvas (no navy tint)
+          deep: "#000000",    // Deep black terminal/code background
+          surface: "#111113", // Elevated panel surface
+          soft: "#18181b",    // Elevated card background (zinc-900)
+          sub: "#0c0c0e",     // Sub-panel / nested background
+          hover: "#222226",   // Subtle interactive hover state
         },
         ink: {
-          DEFAULT: "#f1f5f9", // Slate-100 high-contrast primary
-          muted: "#94a3b8",   // Slate-400 secondary text
-          dim: "#64748b",     // Slate-500 labels / hints
-          faint: "#475569",   // Slate-600 captions / inactive
+          DEFAULT: "#fafafa", // Zinc-50 high-contrast primary
+          muted: "#a1a1aa",   // Zinc-400 secondary text
+          dim: "#71717a",     // Zinc-500 labels / hints
+          faint: "#52525b",   // Zinc-600 captions / inactive
         },
         rule: {
-          DEFAULT: "#1e293b", // Slate-800 border
-          soft: "#131b2a",
+          DEFAULT: "#27272a", // Zinc-800 border
+          soft: "#1c1c1f",
           subtle: "rgba(255, 255, 255, 0.08)",
           light: "rgba(255, 255, 255, 0.15)",
         },
-        ruleSoft: "#131b2a",
+        ruleSoft: "#1c1c1f",
         accent: {
-          DEFAULT: "#38bdf8", // Sky-400 vivid electric cyan
-          strong: "#0284c7",  // Sky-600
-          soft: "#7dd3fc",    // Sky-300
-          glow: "rgba(56, 189, 248, 0.18)",
-          subtle: "rgba(56, 189, 248, 0.08)",
+          DEFAULT: "#ffffff", // Pure high-contrast white accent
+          strong: "#f4f4f5",  // Zinc-100
+          soft: "#e4e4e7",    // Zinc-200
+          glow: "rgba(255, 255, 255, 0.08)",
+          subtle: "rgba(255, 255, 255, 0.04)",
         },
         brand: {
-          purple: "#818cf8",  // Indigo-400
-          violet: "#a78bfa",  // Violet-400
-          emerald: "#34d399", // Emerald-400
+          purple: "#d4d4d8",  // Clean neutral zinc
+          violet: "#e4e4e7",
+          emerald: "#34d399",
         },
         good: "#10b981",      // Emerald-500
         bad: "#f87171",       // Red-400
@@ -68,9 +68,9 @@ export default {
         wider2: "0.08em",
       },
       boxShadow: {
-        glow: "0 0 25px -5px rgba(56, 189, 248, 0.25)",
-        "glow-sm": "0 0 15px -3px rgba(56, 189, 248, 0.2)",
-        card: "0 10px 30px -10px rgba(0, 0, 0, 0.5)",
+        glow: "0 0 25px -5px rgba(255, 255, 255, 0.08)",
+        "glow-sm": "0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4)",
+        card: "0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.4)",
       },
       keyframes: {
         caret: {

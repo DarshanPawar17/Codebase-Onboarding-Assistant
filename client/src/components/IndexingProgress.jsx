@@ -59,15 +59,15 @@ export default function IndexingProgress({ repoUrl }) {
   );
 
   return (
-    <div className="relative mt-8 overflow-hidden rounded-2xl border border-rule/80 bg-bg-surface p-6 shadow-glow-sm sm:p-8">
-      {/* Glow highlight */}
-      <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full bg-accent/10 blur-3xl" />
+    <div className="relative mt-8 overflow-hidden rounded-2xl border border-rule bg-bg-surface p-6 shadow-card sm:p-8">
+      {/* Subtle top ambient highlight */}
+      <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full bg-white/[0.03] blur-3xl" />
 
       <div className="relative">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 font-mono text-xs font-semibold text-accent">
-              <span className="h-2 w-2 rounded-full bg-accent animate-ping" />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-800/80 px-3 py-1 font-mono text-xs font-semibold text-zinc-300">
+              <span className="h-2 w-2 rounded-full bg-zinc-400 animate-ping" />
               AST-Aware Ingestion Pipeline Active
             </div>
             <h3 className="mt-2 text-lg font-semibold text-ink">
@@ -79,7 +79,7 @@ export default function IndexingProgress({ repoUrl }) {
           </div>
 
           <div className="text-right">
-            <span className="font-mono text-2xl font-bold text-accent">
+            <span className="font-mono text-2xl font-bold text-white">
               {progressPercent}%
             </span>
             <p className="font-mono text-[11px] text-ink-dim uppercase tracking-wider">
@@ -91,7 +91,7 @@ export default function IndexingProgress({ repoUrl }) {
         {/* Progress Bar */}
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-deep mb-8">
           <div
-            className="h-full bg-gradient-to-r from-accent via-brand-purple to-accent transition-all duration-700 ease-out"
+            className="h-full bg-gradient-to-r from-zinc-400 via-white to-zinc-300 transition-all duration-700 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -108,18 +108,18 @@ export default function IndexingProgress({ repoUrl }) {
                 key={step.id}
                 className={`flex items-start gap-4 rounded-xl border p-4 transition-all duration-300 ${
                   isCurrent
-                    ? "border-accent/60 bg-accent/5 shadow-sm"
+                    ? "border-zinc-500 bg-zinc-800/40 shadow-sm"
                     : isCompleted
-                    ? "border-rule/60 bg-bg-sub/60 opacity-85"
+                    ? "border-rule/80 bg-bg-sub/60 opacity-90"
                     : "border-ruleSoft bg-transparent opacity-40"
                 }`}
               >
                 <div
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${
                     isCurrent
-                      ? "border-accent bg-accent/20 text-accent animate-pulse"
+                      ? "border-zinc-400 bg-zinc-800 text-white animate-pulse"
                       : isCompleted
-                      ? "border-good/50 bg-good/10 text-good"
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
                       : "border-ruleSoft bg-bg-deep text-ink-dim"
                   }`}
                 >
@@ -138,7 +138,7 @@ export default function IndexingProgress({ repoUrl }) {
                       {step.label}
                     </span>
                     {isCurrent && (
-                      <span className="rounded bg-accent/20 px-2 py-0.5 font-mono text-[10px] text-accent font-medium">
+                      <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 font-mono text-[10px] text-zinc-300 font-medium">
                         Processing...
                       </span>
                     )}

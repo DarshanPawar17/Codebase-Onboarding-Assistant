@@ -18,7 +18,7 @@ export default function CodeBlock({ inline, className, children, ...props }) {
 
   if (inline || !match) {
     return (
-      <code className="rounded border border-ruleSoft bg-bg-sub px-1.5 py-0.5 font-mono text-[0.85em] text-accent font-medium" {...props}>
+      <code className="rounded border border-rule bg-bg-sub px-1.5 py-0.5 font-mono text-[0.85em] text-zinc-200 font-medium" {...props}>
         {children}
       </code>
     );
@@ -40,10 +40,10 @@ export default function CodeBlock({ inline, className, children, ...props }) {
   }
 
   return (
-    <div className="relative my-4 overflow-hidden rounded-xl border border-rule/80 bg-bg-deep/95 shadow-md group">
+    <div className="relative my-4 overflow-hidden rounded-xl border border-rule bg-bg-deep shadow-md group">
       {/* Code Header Bar */}
-      <div className="flex items-center justify-between border-b border-rule/60 bg-bg-surface/90 px-4 py-2 text-xs font-mono">
-        <span className="font-semibold text-accent-soft uppercase tracking-wider text-[11px]">
+      <div className="flex items-center justify-between border-b border-rule bg-bg-surface px-4 py-2 text-xs font-mono">
+        <span className="font-semibold text-zinc-400 uppercase tracking-wider text-[11px]">
           {lang || "code"}
         </span>
         <button
@@ -67,7 +67,7 @@ export default function CodeBlock({ inline, className, children, ...props }) {
       </div>
 
       {/* Code Body */}
-      <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-ink selection:bg-accent/20">
+      <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-ink selection:bg-zinc-800">
         <code
           className={`language-${lang}`}
           dangerouslySetInnerHTML={{ __html: highlightedCode }}

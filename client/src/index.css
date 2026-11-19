@@ -12,18 +12,17 @@
     height: 100%;
   }
   body {
-    background-color: #090d16;
-    /* Soft ambient tech glow at the top, dark slate canvas */
+    background-color: #09090b;
+    /* Clean, minimal micro-dot grid on deep obsidian canvas */
     background-image: 
-      radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08), transparent 45%),
-      radial-gradient(circle at 100% 0%, rgba(129, 140, 248, 0.05), transparent 30%),
-      radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 28px 28px;
+      radial-gradient(ellipse at 50% -20%, rgba(255, 255, 255, 0.04), transparent 70%),
+      radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 100% 100%, 24px 24px;
     background-position: 0 0;
-    color: #f1f5f9;
+    color: #fafafa;
   }
   ::selection {
-    background: rgba(56, 189, 248, 0.3);
+    background: rgba(255, 255, 255, 0.2);
     color: #ffffff;
   }
 
@@ -36,11 +35,11 @@
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background: #1e293b;
+    background: #27272a;
     border-radius: 9999px;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #3f3f46;
   }
 }
 
@@ -50,13 +49,13 @@
 @layer components {
   /* Surfaces */
   .panel {
-    @apply rounded-xl border border-rule/80 bg-bg-surface/90 shadow-card backdrop-blur-md;
+    @apply rounded-xl border border-rule bg-bg-surface/95 shadow-card backdrop-blur-md;
   }
   .panel-sub {
     @apply rounded-lg border border-ruleSoft bg-bg-sub;
   }
   .glass-card {
-    @apply rounded-xl border border-rule/60 bg-bg-soft/70 backdrop-blur-lg transition-all duration-200 hover:border-accent/40 hover:shadow-glow-sm;
+    @apply rounded-xl border border-rule bg-bg-soft/70 backdrop-blur-md transition-all duration-200 hover:border-zinc-600 hover:bg-bg-soft;
   }
 
   /* Labels */
@@ -66,23 +65,23 @@
 
   /* Inputs & Prefix */
   .prompt-prefix {
-    @apply pointer-events-none select-none font-mono text-accent;
+    @apply pointer-events-none select-none font-mono text-ink-dim;
   }
 
   /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider2 text-bg-deep shadow-glow-sm transition-all duration-150 hover:bg-accent-soft hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-zinc-950 shadow-sm transition-all duration-150 hover:bg-zinc-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-bg-surface/60 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider2 text-ink-muted transition-all duration-150 hover:border-accent/60 hover:text-accent hover:bg-bg-soft/80;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-bg-surface/80 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-ink-muted transition-all duration-150 hover:border-zinc-500 hover:text-ink hover:bg-bg-soft;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-rule bg-bg-soft/80 px-3 py-1.5 text-xs font-medium text-ink transition-all hover:border-rule/80 hover:bg-bg-hover active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-rule bg-bg-soft/80 px-3 py-1.5 text-xs font-medium text-ink transition-all hover:border-zinc-600 hover:bg-bg-hover active:scale-[0.98];
   }
 
   /* Input */
   .input {
-    @apply w-full rounded-lg border border-rule bg-bg-sub px-3 py-2.5 font-mono text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+    @apply w-full rounded-lg border border-rule bg-bg-sub px-3 py-2.5 font-mono text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500;
   }
 
   /* Tags & Pills */
@@ -90,7 +89,7 @@
     @apply inline-flex items-center gap-1 rounded-md border border-rule bg-bg-sub/80 px-2 py-0.5 font-mono text-[11px] text-ink-muted;
   }
   .tag-link {
-    @apply tag cursor-pointer transition hover:border-accent/60 hover:text-accent hover:bg-accent/5;
+    @apply tag cursor-pointer transition hover:border-zinc-500 hover:text-ink hover:bg-zinc-800/40;
   }
 
   .hr-thin {
@@ -125,10 +124,10 @@
   @apply leading-relaxed;
 }
 .markdown code:not(pre code) {
-  @apply rounded border border-ruleSoft bg-bg-sub px-1.5 py-0.5 font-mono text-[0.85em] text-accent font-medium;
+  @apply rounded border border-rule bg-bg-sub px-1.5 py-0.5 font-mono text-[0.85em] text-zinc-200 font-medium;
 }
 .markdown pre {
-  @apply my-3.5 overflow-x-auto rounded-lg border border-rule/80 bg-bg-deep p-3.5 font-mono text-[12.5px] leading-relaxed shadow-sm;
+  @apply my-3.5 overflow-x-auto rounded-lg border border-rule bg-bg-deep p-3.5 font-mono text-[12.5px] leading-relaxed shadow-sm;
 }
 .markdown pre code {
   @apply border-0 bg-transparent p-0 text-ink;
@@ -141,12 +140,12 @@
 }
 .markdown h1 { @apply text-xl border-b border-ruleSoft pb-1.5; }
 .markdown h2 { @apply text-lg; }
-.markdown h3 { @apply text-base text-accent-soft; }
+.markdown h3 { @apply text-base text-zinc-200; }
 .markdown a {
-  @apply text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent hover:text-accent-soft transition;
+  @apply text-zinc-200 underline decoration-zinc-500 underline-offset-4 hover:decoration-white hover:text-white transition;
 }
 .markdown blockquote {
-  @apply border-l-2 border-accent/60 pl-3.5 italic text-ink-muted my-3;
+  @apply border-l-2 border-zinc-600 pl-3.5 italic text-ink-muted my-3;
 }
 
 /* Prism syntax tokens for dark mode */
@@ -154,11 +153,11 @@
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #64748b;
+  color: #71717a;
   font-style: italic;
 }
 .token.punctuation {
-  color: #94a3b8;
+  color: #a1a1aa;
 }
 .token.property,
 .token.tag,
@@ -166,7 +165,7 @@
 .token.number,
 .token.constant,
 .token.symbol {
-  color: #f43f5e;
+  color: #f87171;
 }
 .token.selector,
 .token.attr-name,
@@ -178,16 +177,16 @@
 .token.operator,
 .token.entity,
 .token.url {
-  color: #38bdf8;
+  color: #cbd5e1;
 }
 .token.atrule,
 .token.attr-value,
 .token.keyword {
-  color: #818cf8;
+  color: #c084fc;
 }
 .token.function,
 .token.class-name {
-  color: #fbbf24;
+  color: #fcd34d;
 }
 .token.regex,
 .token.important,

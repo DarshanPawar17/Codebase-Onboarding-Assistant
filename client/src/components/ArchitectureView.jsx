@@ -54,10 +54,10 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
   return (
     <aside className="panel flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <header className="border-b border-rule/70 bg-bg-surface/90 px-6 pt-5 pb-4">
+      <header className="border-b border-rule bg-bg-surface px-6 pt-5 pb-4">
         <div className="flex items-center justify-between">
-          <span className="eyebrow flex items-center gap-1.5 text-accent">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+          <span className="eyebrow flex items-center gap-1.5 text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
             Repository Architecture
           </span>
 
@@ -65,7 +65,7 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
             href={githubUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 font-mono text-[11px] text-ink-muted hover:text-accent transition-colors"
+            className="flex items-center gap-1 font-mono text-[11px] text-ink-muted hover:text-white transition-colors"
             title="Open on GitHub"
           >
             <ExternalLink className="h-3 w-3" />
@@ -76,12 +76,12 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
         <h2 className="mt-2 text-xl font-bold tracking-tight text-ink flex items-baseline gap-1 truncate">
           <span className="text-ink-muted font-normal">{repo.owner}</span>
           <span className="text-ink-faint">/</span>
-          <span className="text-accent-soft">{repo.name}</span>
+          <span className="text-white">{repo.name}</span>
         </h2>
 
         <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-[11px] text-ink-muted">
           <span className="flex items-center gap-1 rounded bg-bg-sub px-2 py-0.5 border border-ruleSoft">
-            <GitBranch className="h-3 w-3 text-accent" />
+            <GitBranch className="h-3 w-3 text-zinc-400" />
             <span>{repo.defaultBranch || "main"}</span>
           </span>
           {repo.lastIndexedAt && (
@@ -94,7 +94,7 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-2 border-b border-rule/70 bg-bg-sub/50 p-4 font-mono">
+      <div className="grid grid-cols-3 gap-2 border-b border-rule bg-bg-sub/60 p-4 font-mono">
         <StatCard label="Files" value={formatNumber(repo.stats?.files)} icon={FileCode} />
         <StatCard label="AST Chunks" value={formatNumber(repo.stats?.chunks)} icon={Cpu} highlight />
         <StatCard label="Lines of Code" value={formatNumber(repo.stats?.lines)} icon={Layers} />
@@ -102,7 +102,7 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
 
       {/* Language Distribution Bar */}
       {langEntries.length > 0 && (
-        <div className="border-b border-rule/70 bg-bg-surface px-6 py-3">
+        <div className="border-b border-rule bg-bg-surface px-6 py-3">
           <div className="flex items-center justify-between text-[11px] font-mono text-ink-dim mb-1.5">
             <span>Language Composition</span>
             <span>{langEntries.length} detected</span>
@@ -113,11 +113,11 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
             {langEntries.map(([lang, count], idx) => {
               const pct = (count / totalLangFiles) * 100;
               const colors = [
-                "bg-accent",
-                "bg-brand-purple",
-                "bg-brand-emerald",
-                "bg-warning",
-                "bg-bad",
+                "bg-zinc-200",
+                "bg-zinc-400",
+                "bg-zinc-500",
+                "bg-zinc-600",
+                "bg-zinc-700",
               ];
               const color = colors[idx % colors.length];
               return (
@@ -144,13 +144,13 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
       )}
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-rule/70 bg-bg-sub/70 px-4 text-xs font-mono">
+      <div className="flex border-b border-rule bg-bg-sub/80 px-4 text-xs font-mono">
         <button
           type="button"
           onClick={() => setActiveTab("overview")}
           className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 font-medium transition-colors ${
             activeTab === "overview"
-              ? "border-accent text-accent"
+              ? "border-white text-white"
               : "border-transparent text-ink-muted hover:text-ink"
           }`}
         >
@@ -163,7 +163,7 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
           onClick={() => setActiveTab("checklist")}
           className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 font-medium transition-colors ${
             activeTab === "checklist"
-              ? "border-accent text-accent"
+              ? "border-white text-white"
               : "border-transparent text-ink-muted hover:text-ink"
           }`}
         >
@@ -179,7 +179,7 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
           onClick={() => setActiveTab("meta")}
           className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 font-medium transition-colors ${
             activeTab === "meta"
-              ? "border-accent text-accent"
+              ? "border-white text-white"
               : "border-transparent text-ink-muted hover:text-ink"
           }`}
         >
@@ -228,15 +228,15 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
                   onClick={() => toggleCheck(item.id)}
                   className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer select-none transition-all ${
                     item.done
-                      ? "border-good/40 bg-good/5 text-ink"
-                      : "border-rule/70 bg-bg-sub/80 text-ink-muted hover:border-rule hover:text-ink"
+                      ? "border-emerald-500/30 bg-emerald-500/5 text-ink"
+                      : "border-rule bg-bg-sub/80 text-ink-muted hover:border-zinc-600 hover:text-ink"
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={item.done}
                     onChange={() => {}}
-                    className="h-4 w-4 rounded border-rule text-accent focus:ring-accent bg-bg-deep cursor-pointer"
+                    className="h-4 w-4 rounded border-rule text-white focus:ring-zinc-500 bg-bg-deep cursor-pointer"
                   />
                   <span className={`text-xs font-medium ${item.done ? "line-through text-ink-dim" : ""}`}>
                     {item.label}
@@ -253,20 +253,20 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
 
         {activeTab === "meta" && (
           <div className="space-y-4 font-mono text-xs">
-            <div className="rounded-xl border border-rule/70 bg-bg-sub/60 p-4 space-y-3">
+            <div className="rounded-xl border border-rule bg-bg-sub/60 p-4 space-y-3">
               <div className="flex items-center justify-between border-b border-ruleSoft pb-2">
                 <span className="text-ink-dim">Vector Engine:</span>
                 <span className="text-ink flex items-center gap-1">
-                  <Database className="h-3.5 w-3.5 text-accent" /> Qdrant
+                  <Database className="h-3.5 w-3.5 text-zinc-400" /> Vector Store
                 </span>
               </div>
               <div className="flex items-center justify-between border-b border-ruleSoft pb-2">
                 <span className="text-ink-dim">Embedding Model:</span>
-                <span className="text-accent-soft">text-embedding-3-small (1536-dim)</span>
+                <span className="text-zinc-200">AST Dense Embedding + Cosine Index</span>
               </div>
               <div className="flex items-center justify-between border-b border-ruleSoft pb-2">
                 <span className="text-ink-dim">Chunking Strategy:</span>
-                <span className="text-good font-semibold">Tree-sitter AST Slicing</span>
+                <span className="text-emerald-400 font-semibold">Tree-sitter AST Slicing</span>
               </div>
               <div className="flex items-center justify-between border-b border-ruleSoft pb-2">
                 <span className="text-ink-dim">Retrieval Layer:</span>
@@ -274,7 +274,7 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-ink-dim">Index Status:</span>
-                <span className="rounded bg-good/15 px-2 py-0.5 text-good font-semibold">
+                <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-400 font-semibold">
                   {repo.status || "ready"}
                 </span>
               </div>
@@ -289,13 +289,13 @@ export default function ArchitectureView({ repo, onPreviewCitation }) {
 function StatCard({ label, value, icon: Icon, highlight }) {
   return (
     <div className={`rounded-xl border p-3 text-center ${
-      highlight ? "border-accent/40 bg-accent/5" : "border-rule/60 bg-bg-surface/60"
+      highlight ? "border-zinc-600 bg-zinc-800/40" : "border-rule bg-bg-surface/60"
     }`}>
       <div className="flex items-center justify-center gap-1 text-ink-dim mb-1">
-        <Icon className={`h-3.5 w-3.5 ${highlight ? "text-accent" : ""}`} />
+        <Icon className={`h-3.5 w-3.5 ${highlight ? "text-white" : ""}`} />
         <span className="text-[10px] uppercase tracking-wider">{label}</span>
       </div>
-      <div className={`text-lg font-bold tabular-nums ${highlight ? "text-accent" : "text-ink"}`}>
+      <div className={`text-lg font-bold tabular-nums ${highlight ? "text-white" : "text-ink"}`}>
         {value}
       </div>
     </div>

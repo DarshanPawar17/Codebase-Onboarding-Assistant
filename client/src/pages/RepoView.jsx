@@ -84,7 +84,7 @@ export default function RepoView() {
   if (loading) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800 text-zinc-200 border border-zinc-700/60">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
         <p className="font-mono text-xs text-ink-muted">
@@ -137,7 +137,7 @@ export default function RepoView() {
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Cancel</span>
           </Link>
-          <span className="font-mono text-xs text-accent animate-pulse">
+          <span className="font-mono text-xs text-zinc-300 animate-pulse">
             ● Indexing in progress...
           </span>
         </div>
@@ -173,7 +173,7 @@ export default function RepoView() {
         <div className="flex items-center gap-3">
           <Link
             to="/"
-            className="flex items-center gap-1.5 rounded-lg border border-rule/80 bg-bg-surface/80 px-3 py-1.5 text-xs font-mono text-ink-muted hover:border-accent hover:text-ink transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-rule bg-bg-surface px-3 py-1.5 text-xs font-mono text-ink-muted hover:border-zinc-500 hover:text-white transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>New Repo</span>
@@ -184,13 +184,13 @@ export default function RepoView() {
             <span>/</span>
             <span className="text-ink font-semibold">{repo.owner}</span>
             <span>/</span>
-            <span className="text-accent-soft font-semibold">{repo.name}</span>
+            <span className="text-white font-semibold">{repo.name}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-good/30 bg-good/10 px-2.5 py-0.5 font-mono text-[11px] text-good font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-good animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[11px] text-emerald-400 font-medium">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             {repo.status || "ready"}
           </span>
         </div>
